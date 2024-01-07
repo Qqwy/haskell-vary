@@ -51,6 +51,12 @@ into = intoAt @(IndexOf a l)
 from :: forall a l. (a :| l) => Vary l -> Maybe a
 from = fromAt @(IndexOf a l)
 
+morph :: forall a b. Subset a b => Vary a -> Vary b
+morph (Vary idx val) = Vary newIdx val
+  where
+   mapping = reifyIndices @a @b
+   newIdx = fromIntegral (mapping !! fromIntegral idx)
+
 intoAt :: forall (n :: Nat) (l :: [Type]).
    ( KnownNat n
    ) => Index n l -> Vary l
