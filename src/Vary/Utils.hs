@@ -29,8 +29,7 @@
                         TypeOperators,
     PolyKinds,
     UndecidableInstances,
-    AllowAmbiguousTypes,
-    UndecidableSuperClasses
+    AllowAmbiguousTypes
                         #-}
 
 --{-# OPTIONS_HADDOCK not-home #-}
@@ -40,28 +39,31 @@ import Data.Kind
 import Data.Proxy
 import GHC.TypeLits
 
-class (e :| es, Member e es) => e :|| es where
+-- class e :|| es where
+type (:|) e es = Member e es
 
-class (e :: Type) :| (es :: [Type]) where
-  -- | Get the position of @e@ in @es@.
-  --
-  -- /Note:/ GHC is kind enough to cache these values as they're top level CAFs,
-  -- so the lookup is amortized @O(1)@ without any language level tricks.
-  reifyIndex :: Int
-  reifyIndex =
-    -- Don't show "minimal complete definition" in haddock.
-    error "reifyIndex"
+-- instance (e :| es, Member e es) => e :|| es where
 
-instance TypeError
-  ( Text "There is no alternative for '" :<>: ShowType e :<>: Text "' in the variant list"
-  ) => e :| '[] where
-  reifyIndex = error "unreachable"
+-- class (e :: Type) :| (es :: [Type]) where
+--   -- | Get the position of @e@ in @es@.
+--   --
+--   -- /Note:/ GHC is kind enough to cache these values as they're top level CAFs,
+--   -- so the lookup is amortized @O(1)@ without any language level tricks.
+--   reifyIndex :: Int
+--   reifyIndex =
+--     -- Don't show "minimal complete definition" in haddock.
+--     error "reifyIndex"
 
-instance {-# OVERLAPPING #-} e :| (e : es) where
-  reifyIndex = 0
+-- instance TypeError
+--   ( Text "There is no alternative for '" :<>: ShowType e :<>: Text "' in the variant list"
+--   ) => e :| '[] where
+--   reifyIndex = error "unreachable"
 
-instance e :| es => e :| (x : es) where
-  reifyIndex = 1 + reifyIndex @e @es
+-- instance {-# OVERLAPPING #-} e :| (e : es) where
+--   reifyIndex = 0
+
+-- instance e :| es => e :| (x : es) where
+--   reifyIndex = 1 + reifyIndex @e @es
 
 
 -- | Provide evidence that @xs@ is a subset of @es@.
@@ -92,7 +94,7 @@ instance KnownPrefix es => Subset '[] es where
 
 instance (e :| es, Subset xs es) => Subset (e : xs) es where
   subsetFullyKnown = subsetFullyKnown @xs @es
-  reifyIndices = reifyIndex @e @es : reifyIndices @xs @es
+  reifyIndices = natValue @(IndexOf e es) : reifyIndices @xs @es
 
 ----
 
