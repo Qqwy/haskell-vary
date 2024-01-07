@@ -17,18 +17,17 @@
     TupleSections,
     TypeApplications,
     TypeFamilies,
-    TypeOperators, 
-    PolyKinds,
-    UndecidableInstances,
+    TypeOperators,
     AllowAmbiguousTypes
 #-}
 
 module Vary where
 
 import Data.Kind
-import Data.Proxy
 import GHC.Exts (Any)
 import GHC.TypeLits
+import Vary.Utils
+import Unsafe.Coerce (unsafeCoerce)
 
 data Vary (possibilities :: [Type]) = Vary {-# UNPACK #-} !Word Any
 
@@ -39,15 +38,18 @@ size _ = natValue @(Length xs)
 activeIndex :: Vary a -> Word
 activeIndex (Vary idx _) = idx
 
+-- | Put a value into a Variant
+--
+-- Use the first matching type index.
+into :: forall a l.
+   (a :|| l
+   ) => a -> Vary l
+{-# INLINABLE into #-}
+into = intoAt @(IndexOf a l)
 
--- | Get list length
-type family Length (xs :: [k]) :: Nat where
-   Length xs = Length' 0 xs
 
-type family Length' n (xs :: [k]) :: Nat where
-   Length' n '[]       = n
-   Length' n (x ': xs) = Length' (n+1) xs
-
-natValue :: forall (n :: Nat) a. (KnownNat n, Num a) => a
-{-# INLINABLE natValue #-}
-natValue = fromIntegral (natVal (Proxy :: Proxy n))
+intoAt :: forall (n :: Nat) (l :: [Type]).
+   ( KnownNat n
+   ) => Index n l -> Vary l
+{-# INLINABLE intoAt #-}
+intoAt a = Vary (natValue' @n) (unsafeCoerce a)
