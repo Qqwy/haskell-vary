@@ -1,6 +1,4 @@
---{-# OPTIONS_GHC -Wno-redundant-constraints #-}
-
---{-# OPTIONS_HADDOCK not-home #-}
+{-# OPTIONS_HADDOCK not-home #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
@@ -16,9 +14,16 @@
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 module Vary.Utils where
 
-import Data.Kind
-import Data.Proxy
+import Data.Kind ( Type, Constraint )
+import Data.Proxy ( Proxy(..) )
 import GHC.TypeLits
+    ( KnownNat,
+      TypeError,
+      type (+),
+      type (-),
+      natVal,
+      ErrorMessage(ShowType, (:$$:), (:<>:), Text),
+      Nat )
 
 type (:|) e es = Member e es
 
