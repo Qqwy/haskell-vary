@@ -1,70 +1,26 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE BangPatterns,
-                        ConstraintKinds,
-                        DataKinds,
-                        DeriveFunctor,
-                        DeriveGeneric,
-                        FlexibleContexts,
-                        FlexibleInstances,
-                        GADTs,
-                        GeneralizedNewtypeDeriving,
-                        LambdaCase,
-                        MultiParamTypeClasses,
-                        NoStarIsType,
-                        RankNTypes,
-                        RoleAnnotations,
-                        ScopedTypeVariables,
-                        StandaloneDeriving,
-                        TupleSections,
-                        TypeApplications,
-                        TypeFamilies,
-                        TypeOperators,
-    PolyKinds,
-    UndecidableInstances,
-    AllowAmbiguousTypes
-                        #-}
+--{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
 --{-# OPTIONS_HADDOCK not-home #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 module Vary.Utils where
 
 import Data.Kind
 import Data.Proxy
 import GHC.TypeLits
 
--- class e :|| es where
 type (:|) e es = Member e es
-
--- instance (e :| es, Member e es) => e :|| es where
-
--- class (e :: Type) :| (es :: [Type]) where
---   -- | Get the position of @e@ in @es@.
---   --
---   -- /Note:/ GHC is kind enough to cache these values as they're top level CAFs,
---   -- so the lookup is amortized @O(1)@ without any language level tricks.
---   reifyIndex :: Int
---   reifyIndex =
---     -- Don't show "minimal complete definition" in haddock.
---     error "reifyIndex"
-
--- instance TypeError
---   ( Text "There is no alternative for '" :<>: ShowType e :<>: Text "' in the variant list"
---   ) => e :| '[] where
---   reifyIndex = error "unreachable"
-
--- instance {-# OVERLAPPING #-} e :| (e : es) where
---   reifyIndex = 0
-
--- instance e :| es => e :| (x : es) where
---   reifyIndex = 1 + reifyIndex @e @es
-
 
 -- | Provide evidence that @xs@ is a subset of @es@.
 class KnownPrefix es => Subset (xs :: [Type]) (es :: [Type]) where
@@ -111,7 +67,7 @@ instance {-# INCOHERENT #-} KnownPrefix es where
 ----
 
 -- | Require that @xs@ is the unknown suffix of @es@.
-class (xs :: [Type]) `IsUnknownSuffixOf` (es :: [Type])
+class (xs :: [k]) `IsUnknownSuffixOf` (es :: [k])
 instance {-# INCOHERENT #-} xs ~ es => xs `IsUnknownSuffixOf` es
 instance xs `IsUnknownSuffixOf` es => xs `IsUnknownSuffixOf` (e : es)
 
@@ -128,11 +84,6 @@ type family Length' n (xs :: [k]) :: Nat where
 natValue :: forall (n :: Nat) a. (KnownNat n, Num a) => a
 {-# INLINABLE natValue #-}
 natValue = fromIntegral (natVal (Proxy :: Proxy n))
-
--- | Get a Nat value as a Word
-natValue' :: forall (n :: Nat). KnownNat n => Word
-{-# INLINABLE natValue' #-}
-natValue' = natValue @n
 
 -- | Get the first index of a type
 type IndexOf (x :: k) (xs :: [k]) = IndexOf' (MaybeIndexOf x xs) x xs
@@ -177,3 +128,9 @@ type MemberAtIndex i x xs =
    ( x ~ Index i xs
    , KnownNat i
    )
+
+-- | Remove (the first) `a` in `l`
+type family Remove (a :: k) (l :: [k]) :: [k] where
+   Remove a '[]       = '[]
+   Remove a (a ': as) = as
+   Remove a (b ': as) = b ': Remove a as
