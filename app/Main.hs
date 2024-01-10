@@ -1,40 +1,51 @@
-{-# LANGUAGE DataKinds, TypeApplications #-}
-{-# OPTIONS_GHC -ddump-stg-from-core #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Strict #-}
-{-# LANGUAGE OverloadedLists, OverloadedStrings, MagicHash #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
+{-# OPTIONS_GHC -ddump-stg-from-core #-}
+
 module Main (main) where
 
+import Control.Exception.Base
+import Data.Array.Byte (ByteArray)
 import Data.Function ((&))
+import qualified Data.Vector.Unboxed as UVector
+import Data.Word
+import Foreign.C.String
+import GHC.Exts
 import Lib
 import Vary (Vary)
 import qualified Vary
-import qualified Data.Vector.Unboxed as UVector
-import Data.Array.Byte(ByteArray)
-import GHC.Exts
-import Control.Exception.Base
-import Data.Word
-import Foreign.C.String
 
 main :: IO ()
 main = do
-    let str = example buildVar
-    putStrLn str
-    -- print foo 
-    -- print world
+  let str = example buildVar
+  putStrLn str
+
+-- print foo
+-- print world
 
 buildVar :: Vary '[Bool, Int]
 buildVar = Vary.from @Int 1234
 
-example :: Vary (Bool : Int : l) -> String
--- example :: Vary [Bool, Int] -> String
+-- example :: Vary (Bool : Int : l) -> String
+example :: Vary [Bool, Int] -> String
 example =
-  Vary.defaultCase "hmm"
-  -- Vary.case_
-    & Vary.on @Int show
-    & Vary.on boolFun
-    & Vary.morphed
+      Vary.morphed
+      $ Vary.on @Int show
+      $ Vary.on boolFun
+      $ Vary.exhaustiveCase
+      -- $ Vary.defaultCase "Hmm"
+ --Vary.defaultCase "hmm"
+-- Vary.exhaustiveCase
+-- & Vary.on boolFun
+-- & Vary.on @Int show
+-- & Vary.morphed
 
 boolFun :: Bool -> String
 boolFun x = if x then "true" else "false"
@@ -52,4 +63,4 @@ hello = Ptr "hello"#
 
 {-# NOINLINE world #-}
 world :: (Int, Int, Int)
-world = (1,2,3)
+world = (1, 2, 3)

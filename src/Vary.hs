@@ -18,38 +18,43 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE NoStarIsType #-}
 
-module Vary (
--- * Core type definition
-Vary,
-(:|),
--- * Construction and Destruction:
-from,
-into,
-intoOnly,
--- * 'pattern' matching:
-on,
-case_,
-defaultCase,
--- * Transforming
-morph,
-morphed,
--- * Informational
-size,
-activeIndex
-) where
+module Vary
+  ( -- * Core type definition
+    Vary,
+    (:|),
+
+    -- * Construction and Destruction:
+    from,
+    into,
+    intoOnly,
+
+    -- * 'pattern' matching:
+    on,
+    exhaustiveCase,
+    defaultCase,
+
+    -- * Transforming
+    morph,
+    morphed,
+
+    -- * Informational
+    size,
+    activeIndex,
+  )
+where
 
 import Control.Monad (guard)
 import Data.Function ((&))
 import Data.Kind
+import qualified Data.Vector.Unboxed as UVector
 import GHC.Exts (Any)
 import GHC.TypeLits
 import Unsafe.Coerce (unsafeCoerce)
+import Vary.Core (Vary (..))
 import Vary.Utils
-import qualified Data.Vector.Unboxed as UVector
-import Vary.Core (Vary(..))
 
 size :: forall xs. (KnownNat (Length xs)) => Vary xs -> Word
 size _ = natValue @(Length xs)
@@ -62,18 +67,16 @@ activeIndex (Vary idx _) = idx
 -- In the case of duplicate types,
 -- uses the first matching type index.
 from ::
-  forall a l.
-  ( a :| l
-  ) =>
-  a ->
-  Vary l
+  forall a l. a :| l => a -> Vary l
 {-# INLINE from #-}
 from = fromAt @(IndexOf a l)
 
 -- | Attempts to turn the Vary back into a particular type.
 --
--- This might fail since one of the other variants might be in there,
+-- This might fail since the Vary might actually contain another possibility,
 -- which is why a `Maybe` is returned.
+--
+-- If you have a single possibility, you can use `intoOnly`.
 into :: forall a l. (a :| l) => Vary l -> Maybe a
 {-# INLINE into #-}
 into = intoAt @(IndexOf a l)
@@ -82,21 +85,20 @@ into = intoAt @(IndexOf a l)
 --
 -- A variant with only a single possibility
 -- can always be safely turned back into this one type.
+--
+-- If you have multiple possibilities, use `into`.
 intoOnly :: forall a. Vary '[a] -> a
 {-# INLINE intoOnly #-}
 intoOnly (Vary _ val) = unsafeCoerce val
 
 -- | Base case of an exhaustive pattern match. Use it together with `on`.
 --
--- Since it is impossible to actually construct a value of the type `Vary '[]`,
--- we can "turn it into anything", just like `Data.Void.absurd`. 
-case_ :: forall anything. Vary '[] -> anything
-{-# INLINE case_ #-}
-case_ _vary =
-  -- Note that we ensure this is never called,
-  -- because there is no way to construct a value of `Vary '[]`
-  -- but GHC cannot be sure!
-  undefined
+-- Since it is impossible to actually _construct_ a value of the type `Vary '[]`,
+-- we can "turn it into anything", just like `Data.Void.absurd`.
+exhaustiveCase :: forall anything. Vary '[] -> anything
+{-# INLINE exhaustiveCase #-}
+exhaustiveCase _vary =
+  error "exhaustiveCase was unexpectedly called!"
 
 -- | Base case of a non-exhaustive pattern match. Use it together with `on`.
 --
@@ -115,7 +117,7 @@ defaultCase = const
 --
 -- In many cases GHC can even look through the old->new Variant structure entirely,
 -- and e.g. inline the variant construction all-together.
-morph :: forall xs ys. Subset xs ys => Vary xs -> Vary ys
+morph :: forall xs ys. (Subset xs ys) => Vary xs -> Vary ys
 morph = morph' @xs @ys
 
 fromAt ::
@@ -142,7 +144,7 @@ intoAt (Vary t a) = do
 --
 -- This is the main way to 'deconstruct' or a variant.
 --
--- Use it together with `case_` if you handle all possibilities,
+-- Use it together with `exhaustiveCase` if you handle all possibilities,
 -- or `defaultCase` if you don't want to.
 --
 -- Even though in many cases GHC is able to infer the types,
@@ -168,61 +170,10 @@ on thisFun restFun vary =
     coerceHigher (Vary idx val) =
       unsafeCoerce (Vary (idx - 1) val)
 
--- | Flexible version of `on`, not restricted to match on the first possibility in the variant.
+-- | Execute a function expecting a larger (or differently-ordered) variant
 --
--- The advantage of this function is that you can add cases in any order.
--- The disadvantage is that GHC is unable to infer types when you use it,
--- so it will often complain that it needs more hints.
---
--- As such, you might prefer using `morph` to re-order a variant and then use the normal `on` on the result of that.
---
--- GHC is often unable to infer the type when using this,
--- and the error messages on failure are not very nice.
---
--- So be sure to be very clear in the type you expect to match.
-on' :: forall a b l. (a :| l) => (a -> b) -> (Vary (Remove a l) -> b) -> Vary l -> b
-on' thisFun restFun vary =
-  case Vary.into @a vary of
-    Just val -> thisFun val
-    Nothing ->
-      restFun (coerceRest vary)
-  where
-    -- Invariant: does not contain @a
-    coerceRest :: Vary l -> Vary (Remove a l)
-    coerceRest (Vary idx val) =
-      if idx > natValue @(IndexOf a (a : l))
-        then unsafeCoerce (Vary (idx - 1) val)
-        else unsafeCoerce (Vary idx val)
-
--- example :: forall l. Vary  (Int : Bool : l) -> String
--- example :: Vary (Int : Bool : l) -> String
--- example :: Vary [Int, Bool] -> String
-example :: Vary '[Bool, Int] -> String
-example =
-  -- defaultCase "hmm"
-  case_
-    & on boolFun
-    & on intFun
-    & morphed
-
-boolFun :: Bool -> String
-boolFun x = if x then "true" else "false"
-
-intFun :: Int -> String
-intFun y = if y < 0 then "negative" else "nonnegative"
-
--- unreachable
--- \$ on (\x -> if x then "true" else "false")
--- \$ on (\y -> "42")
--- on (\x -> x) unreachable
-
---   vary
---   & on (\x -> x)
---   vary
---   & on (\x -> if x then "true" else "false")
---   & unreachable
--- & unreachable
-
-morphed :: forall a b res. (Subset b a) => (Vary a -> res) -> Vary b -> res
+-- with a smaller (or differently-ordered) variant,
+-- by calling `morph` on it before running the function.
+morphed :: forall a b res. (Subset a b) => (Vary b -> res) -> Vary a -> res
 {-# INLINE morphed #-}
-morphed fun vary = fun (morph vary)
+morphed fun = fun . morph

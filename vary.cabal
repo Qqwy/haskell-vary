@@ -29,6 +29,7 @@ library
       Vary
       Vary.Core
       Vary.Utils
+      Vary.VEither
   other-modules:
       Paths_vary
   autogen-modules:
