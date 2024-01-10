@@ -19,8 +19,27 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NoStarIsType #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-module Vary where
+module Vary (
+-- * Core type definition
+Vary,
+(:|),
+-- * Construction and Destruction:
+from,
+into,
+intoOnly,
+-- * 'pattern' matching:
+on,
+case_,
+defaultCase,
+-- * Transforming
+morph,
+morphed,
+-- * Informational
+size,
+activeIndex
+) where
 
 import Control.Monad (guard)
 import Data.Function ((&))
@@ -29,8 +48,8 @@ import GHC.Exts (Any)
 import GHC.TypeLits
 import Unsafe.Coerce (unsafeCoerce)
 import Vary.Utils
-
-data Vary (possibilities :: [Type]) = Vary {-# UNPACK #-} !Word Any
+import qualified Data.Vector.Unboxed as UVector
+import Vary.Core (Vary(..))
 
 size :: forall xs. (KnownNat (Length xs)) => Vary xs -> Word
 size _ = natValue @(Length xs)
@@ -67,6 +86,10 @@ intoOnly :: forall a. Vary '[a] -> a
 {-# INLINE intoOnly #-}
 intoOnly (Vary _ val) = unsafeCoerce val
 
+-- | Base case of an exhaustive pattern match. Use it together with `on`.
+--
+-- Since it is impossible to actually construct a value of the type `Vary '[]`,
+-- we can "turn it into anything", just like `Data.Void.absurd`. 
 case_ :: forall anything. Vary '[] -> anything
 {-# INLINE case_ #-}
 case_ _vary =
@@ -75,17 +98,25 @@ case_ _vary =
   -- but GHC cannot be sure!
   undefined
 
+-- | Base case of a non-exhaustive pattern match. Use it together with `on`.
+--
+-- If you've handled the variants you like and have some left,
+-- you can specify a default fallback value using `defaultCase`.
+--
+-- Indeed, this function is just another name for `const`.
 defaultCase :: forall a l. a -> Vary l -> a
 {-# INLINE defaultCase #-}
 defaultCase = const
 
 -- | Extend a smaller Vary into a bigger one, or change the order of its elements.
-morph :: forall a b. (Subset a b) => Vary a -> Vary b
-{-# INLINE morph #-}
-morph (Vary idx val) = Vary newIdx val
-  where
-    mapping = reifyIndices @a @b
-    newIdx = fromIntegral (mapping !! fromIntegral idx)
+--
+-- This is a O(1) operation, as the tag number stored in the variant is
+-- changed to the new tag number.
+--
+-- In many cases GHC can even look through the old->new Variant structure entirely,
+-- and e.g. inline the variant construction all-together.
+morph :: forall xs ys. Subset xs ys => Vary xs -> Vary ys
+morph = morph' @xs @ys
 
 fromAt ::
   forall (n :: Nat) (l :: [Type]).
@@ -117,11 +148,12 @@ intoAt (Vary t a) = do
 -- Even though in many cases GHC is able to infer the types,
 -- it is a good idea to combine it with `TypeApplications`:
 --
---  -- inferred type: `Vary (Bool : Int : l) -> String`
---  example =
---    defaultCase "other value"
---    & on @Bool show
---    & on @Int (\x -> show (x + 1))
+-- > -- Note that GHC can infer this type without problems:
+-- > -- example :: Vary (Bool : Int : l) -> String
+-- > example =
+-- >   Vary.defaultCase "other value"
+-- >   & Vary.on @Bool show
+-- >   & Vary.on @Int (\x -> show (x + 1))
 on :: forall a b l. (a -> b) -> (Vary l -> b) -> Vary (a : l) -> b
 {-# INLINE on #-}
 on thisFun restFun vary =

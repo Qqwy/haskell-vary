@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -ddump-stg-from-core #-}
 {-# OPTIONS_HADDOCK not-home #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
@@ -13,6 +14,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 module Vary.Utils where
+import Vary.Core (Vary(..))
 
 import Data.Kind ( Type, Constraint )
 import Data.Proxy ( Proxy(..) )
@@ -24,8 +26,11 @@ import GHC.TypeLits
       natVal,
       ErrorMessage(ShowType, (:$$:), (:<>:), Text),
       Nat )
+import qualified Data.Vector.Unboxed as UVector
+type UVector = UVector.Vector
 
 type (:|) e es = Member e es
+
 
 -- | Provide evidence that @xs@ is a subset of @es@.
 class KnownPrefix es => Subset (xs :: [Type]) (es :: [Type]) where
@@ -34,10 +39,22 @@ class KnownPrefix es => Subset (xs :: [Type]) (es :: [Type]) where
     -- Don't show "minimal complete definition" in haddock.
     error "subsetFullyKnown"
 
-  reifyIndices :: [Int]
-  reifyIndices =
+  -- reifyIndices :: [Int]
+  -- reifyIndices =
+  --   -- Don't show "minimal complete definition" in haddock.
+  --   error "reifyIndices"
+
+  -- reifyIndicesVec :: UVector Int
+  -- reifyIndicesVec = 
+  --   -- Don't show "minimal complete definition" in haddock.
+  --   error "reifyIndicesVec"
+
+  
+  morph' :: Vary xs -> Vary ys
+  morph' = 
     -- Don't show "minimal complete definition" in haddock.
-    error "reifyIndices"
+    -- Also, default for the empty instance :-)
+    error "morph' was unexpectedly called"
 
 -- If the subset is not fully known, make sure the subset and the base stack
 -- have the same unknown suffix.
@@ -46,16 +63,27 @@ instance {-# INCOHERENT #-}
   , xs `IsUnknownSuffixOf` es
   ) => Subset xs es where
   subsetFullyKnown = False
-  reifyIndices = []
+  -- reifyIndices = []
+  -- {-# INLINE reifyIndicesVec #-}
+  -- reifyIndicesVec = UVector.empty
+
 
 -- If the subset is fully known, we're done.
 instance KnownPrefix es => Subset '[] es where
   subsetFullyKnown = True
-  reifyIndices = []
+  -- reifyIndices = []
+  -- {-# INLINE reifyIndicesVec #-}
+  -- reifyIndicesVec = UVector.empty -- UVector.empty
 
 instance (e :| es, Subset xs es) => Subset (e : xs) es where
   subsetFullyKnown = subsetFullyKnown @xs @es
-  reifyIndices = natValue @(IndexOf e es) : reifyIndices @xs @es
+  -- reifyIndices = natValue @(IndexOf e es) : reifyIndices @xs @es
+  -- {-# INLINE reifyIndicesVec #-}
+  -- reifyIndicesVec = UVector.fromList (natValue @(IndexOf e es) : reifyIndices @xs @es) -- UVector.cons (natValue @(IndexOf e es)) (reifyIndicesVec @xs @es)
+
+  morph' (Vary 0 a) = Vary (natValue @(IndexOf e es)) a
+  morph' (Vary n a) = morph' @xs @es (Vary (n-1) a)
+
 
 ----
 
@@ -76,7 +104,10 @@ class (xs :: [k]) `IsUnknownSuffixOf` (es :: [k])
 instance {-# INCOHERENT #-} xs ~ es => xs `IsUnknownSuffixOf` es
 instance xs `IsUnknownSuffixOf` es => xs `IsUnknownSuffixOf` (e : es)
 
-
+type family Hmm (xs :: [Type]) (ys :: [Type]) :: [Nat] where
+  Hmm '[] _ = '[]
+  Hmm _ '[] = '[] -- TODO
+  Hmm (x ': xs) ys = (IndexOf x ys : Hmm xs ys)
 
 -- | Get list length
 type family Length (xs :: [k]) :: Nat where
