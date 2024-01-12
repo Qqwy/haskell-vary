@@ -12,6 +12,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 module Vary.Utils where
 import Vary.Core (Vary(..))
@@ -120,6 +121,23 @@ type family Length' n (xs :: [k]) :: Nat where
 natValue :: forall (n :: Nat) a. (KnownNat n, Num a) => a
 {-# INLINABLE natValue #-}
 natValue = fromIntegral (natVal (Proxy :: Proxy n))
+
+-- | Constraint to link the input and output lists together.
+--
+-- By doing this, we can infer ys from (a,b,xs) or xs from (a,b,ys).
+type Mappable a b xs ys = (ys ~ Mapped a b xs, xs ~ Mapped b a ys)
+
+-- | Compute a HList where the type a was changed into b.
+type family Mapped (a :: Type) (b :: Type) (as :: [Type]) = (bs :: [Type]) where
+  Mapped a b (a ': as)  = (b ': as)
+  Mapped a b (x ': as) = x ': (Mapped a b as)
+  Mapped _ _ _ = TypeError ('Text "Boom") -- ( 'ShowType a ':<>: 'Text "not found in list" :$$: " " ':<>: 'ShowType l)
+
+-- type family M2 (lhs :: (Type, Type, [Type])) = (rhs :: (Type, Type, [Type])) | rhs -> lhs where
+--   M2 (a,b,(a ': as)) = (a,b, (b ': as))
+--   M2 (a,b,(x ': as)) = (a,b, (x ': (M2 (a,b,as))))
+--   M2 _ = TypeError ('Text "Boom")
+
 
 -- | Get the first index of a type
 type IndexOf (x :: k) (xs :: [k]) = IndexOf' (MaybeIndexOf x xs) x xs

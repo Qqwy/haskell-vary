@@ -64,3 +64,5 @@ hello = Ptr "hello"#
 {-# NOINLINE world #-}
 world :: (Int, Int, Int)
 world = (1, 2, 3)
+
+example2 vary = Vary.mapOn @Int show $ vary
