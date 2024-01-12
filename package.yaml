@@ -50,7 +50,7 @@ executables:
 
 tests:
   vary-test:
-    main:                Spec.hs
+    main:                spec.hs
     source-dirs:         test
     ghc-options:
     - -threaded
@@ -58,3 +58,13 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - vary
+  doctests:
+    main: doctests.hs
+    source-dirs: test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - vary
+    - doctest-parallel

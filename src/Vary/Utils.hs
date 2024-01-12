@@ -13,8 +13,17 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE GHC2021 #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
-module Vary.Utils((:|), KnownPrefix(..), Length, Subset(..), Index, IndexOf, Mappable, natValue) where
+module Vary.Utils(
+  (:|), KnownPrefix(..), Length, Subset(..), Index, IndexOf, Mappable, 
+  
+  natValue, 
+
+    -- * Informational
+    size,
+    activeIndex,
+) where
 import Vary.Core (Vary(..))
 
 import Data.Kind ( Type, Constraint )
@@ -30,7 +39,31 @@ import GHC.TypeLits
 import qualified Data.Vector.Unboxed as UVector
 type UVector = UVector.Vector
 
+-- | Constrain `es` to be any type list containing `e`.
+--
+-- Useful to talk about variants generically without having to specify the exact type list right away.
+--
+-- For instance, the type of `Vary.from` is
+--
+-- > Vary.from :: (a :| l) => a -> Vary l
+--
+-- because we can use it to construct /any/ Vary as long as there is an @a@ somewhere in its list of types.
 type (:|) e es = Member e es
+
+-- | Returns the number of elements contained in this variant.
+--
+-- Does not actually use the runtime representation of the variant in any way.
+size :: forall xs. (KnownNat (Length xs)) => Vary xs -> Word
+size _ = natValue @(Length xs)
+
+-- | Returns the currently active 'tag index' of the variant.
+--
+-- Not useful in normal code, but maybe nice in certaing debugging scenarios.
+--
+-- Note that this index changes whenever a variant is `Vary.morph`ed.
+activeIndex :: Vary a -> Word
+activeIndex (Vary idx _) = idx
+
 
 
 -- | Provide evidence that @xs@ is a subset of @es@.
@@ -178,11 +211,11 @@ type Index (n :: Nat) (l :: [k]) = Type_List_Too_Vague___Please_Specify_Prefix_O
 type family Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location (n :: Nat) (l :: [k]) (l2 :: [k]) :: k where
    Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location 0 (x ': _ ) _  = x
    Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location n (_ ': xs) l2 = Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location (n-1) xs l2
-  --  Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location n '[]       l2 = TypeError ( 'Text "Index "
-  --                               ':<>: 'ShowType n
-  --                               ':<>: 'Text " out of bounds for list:"
-  --                               ':$$: 'Text " "
-  --                               ':<>: 'ShowType l2 )
+   Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location n '[]       l2 = TypeError ( 'Text "Index "
+                                ':<>: 'ShowType n
+                                ':<>: 'Text " out of bounds for list:"
+                                ':$$: 'Text " "
+                                ':<>: 'ShowType l2 )
 
 
 -- | Constraint: x member of xs
