@@ -22,7 +22,9 @@
 {-# LANGUAGE NoStarIsType #-}
 
 module Vary
-  ( -- * Core type definition
+  ( -- $setup
+
+    -- * Core type definition
     Vary,
     (:|),
 
@@ -54,10 +56,22 @@ import Vary.Core (Vary (..))
 import Vary.Utils
 
 -- $setup
+--
+-- == General Usage
+--
+-- This module is intended to be used qualified:
+--
+-- >>> import qualified Vary
+-- 
+-- And for many functions, it is useful or outright necessary to enable the following extensions:
+--
 -- >>> :set -XGHC2021
 -- >>> :set -XDataKinds
--- >>> import qualified Vary
+--
+-- Finally, some examples snippets in this module make use of 'Data.Function.&', the left-to-right function composition operator:
+--
 -- >>> import Data.Function ((&))
+
 
 -- | Builds a Vary from the given value.
 --
@@ -268,7 +282,7 @@ morphed fun = fun . morph
 -- To do this, add the `Mappable` constraint (exposed from `Vary.Utils`) 
 -- to relate the input variant with the output variant.
 --
--- import qualified Data.Char
+-- >>> import qualified Data.Char
 -- >>> :{
 -- example4 :: (Vary.Utils.Mappable Int Bool xs ys, Vary.Utils.Mappable Char Int ys zs) => Vary xs -> Vary zs
 -- example4 vary =

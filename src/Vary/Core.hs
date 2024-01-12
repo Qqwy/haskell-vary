@@ -40,6 +40,8 @@ import Unsafe.Coerce
 --
 -- - Much easier to work with
 -- - Much more efficient, as a single (strict) word is used for the tag.
+--
+-- `Vary`'s can be constructed with "Vary".`Vary.from` and values can be extracted using "Vary".`Vary.into` and "Vary".'Vary.on' .
 data Vary (possibilities :: [Type]) = Vary {-# UNPACK #-} !Word Any
 
 instance Show (Vary '[]) where
