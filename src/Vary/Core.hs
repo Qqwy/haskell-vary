@@ -25,3 +25,4 @@ import Data.Kind (Type)
 import GHC.Exts (Any)
 
 data Vary (possibilities :: [Type]) = Vary {-# UNPACK #-} !Word Any
+

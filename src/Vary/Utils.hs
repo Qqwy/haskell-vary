@@ -14,7 +14,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
-module Vary.Utils where
+module Vary.Utils((:|), KnownPrefix(..), Length, Subset(..), Index, IndexOf, Mappable, natValue) where
 import Vary.Core (Vary(..))
 
 import Data.Kind ( Type, Constraint )
@@ -125,19 +125,27 @@ natValue = fromIntegral (natVal (Proxy :: Proxy n))
 -- | Constraint to link the input and output lists together.
 --
 -- By doing this, we can infer ys from (a,b,xs) or xs from (a,b,ys).
-type Mappable a b xs ys = (a :| xs, b :| ys, ys ~ Mapped a b xs, xs ~ Mapped b a ys)
+type Mappable a b xs ys = (a :| xs, b :| ys, ys ~ Mapped a b xs) -- , xs ~ Mapped b a ys)
 
 -- | Compute a HList where the type a was changed into b.
 type family Mapped (a :: Type) (b :: Type) (as :: [Type]) = (bs :: [Type]) where
   Mapped a b (a ': as)  = (b ': as)
   Mapped a b (x ': as) = x ': (Mapped a b as)
-  Mapped _ _ _ = TypeError ('Text "Boom") -- ( 'ShowType a ':<>: 'Text "not found in list" :$$: " " ':<>: 'ShowType l)
+  Mapped a b l = TypeError (
+    'Text "Cannot map from " ':<>: 'ShowType a ':<>: 'Text " into " ':<>: 'ShowType b 
+    :$$: 'Text "as it cannot be found in the list " ':<>: 'ShowType l)
+
+type family Mapped2 (a :: Type) (b :: Type) (as :: [Type]) = (bs :: [Type]) where
+  Mapped2 a b as = ReplacedAt (IndexOf a as) b as
+
+type family ReplacedAt (n :: Nat) (t :: Type) (xs :: [Type]) = (bs :: [Type]) where
+  ReplacedAt 0 t (x ': xs) = (t ': xs)
+  ReplacedAt n t (x ': xs) = (x : (ReplacedAt (n-1) t xs))
 
 -- type family M2 (lhs :: (Type, Type, [Type])) = (rhs :: (Type, Type, [Type])) | rhs -> lhs where
 --   M2 (a,b,(a ': as)) = (a,b, (b ': as))
 --   M2 (a,b,(x ': as)) = (a,b, (x ': (M2 (a,b,as))))
 --   M2 _ = TypeError ('Text "Boom")
-
 
 -- | Get the first index of a type
 type IndexOf (x :: k) (xs :: [k]) = IndexOf' (MaybeIndexOf x xs) x xs
@@ -162,17 +170,20 @@ type family MaybeIndexOf' (n :: Nat) (a :: k) (l :: [k]) where
 
 
 -- | Indexed access into the list
-type Index (n :: Nat) (l :: [k]) = Index' n l l
+type Index (n :: Nat) (l :: [k]) = Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location n l l
 
--- | Indexed access into the list
-type family Index' (n :: Nat) (l :: [k]) (l2 :: [k]) :: k where
-   Index' 0 (x ': _ ) _  = x
-   Index' n (_ ': xs) l2 = Index' (n-1) xs l2
-   Index' n '[]       l2 = TypeError ( 'Text "Index "
-                                ':<>: 'ShowType n
-                                ':<>: 'Text " out of bounds for list:"
-                                ':$$: 'Text " "
-                                ':<>: 'ShowType l2 )
+-- We use this ridiculous name
+-- to make it clear to the user when they see it in a type error
+-- how to resolve that type error.
+type family Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location (n :: Nat) (l :: [k]) (l2 :: [k]) :: k where
+   Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location 0 (x ': _ ) _  = x
+   Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location n (_ ': xs) l2 = Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location (n-1) xs l2
+  --  Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location n '[]       l2 = TypeError ( 'Text "Index "
+  --                               ':<>: 'ShowType n
+  --                               ':<>: 'Text " out of bounds for list:"
+  --                               ':$$: 'Text " "
+  --                               ':<>: 'ShowType l2 )
+
 
 -- | Constraint: x member of xs
 type family Member x xs :: Constraint where

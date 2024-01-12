@@ -37,9 +37,9 @@ module Vary
     defaultCase,
 
     -- * Transforming
+    mapOn,
     morph,
     morphed,
-    mapOn,
 
     -- * Informational
     size,
@@ -63,10 +63,17 @@ size _ = natValue @(Length xs)
 activeIndex :: Vary a -> Word
 activeIndex (Vary idx _) = idx
 
--- | Put a value into a Vary
+-- | Builds a Vary from the given value.
 --
--- In the case of duplicate types,
--- uses the first matching type index.
+-- In many cases, GHC is able to infer which possibility to use (though you might still like type applications even here for improved readability).
+-- However, in the case of number literals or (with OverloadedStrings or OverloadedLists enabled) string or list literals,
+-- it might be necessary to include a TypeApplication:
+--
+-- >>> Vary.from @Int 42
+-- Vary.from 42
+--
+-- In the case of the Vary contains duplicate types,
+-- the first matching type index is used.
 from ::
   forall a l. a :| l => a -> Vary l
 {-# INLINE from #-}
@@ -77,7 +84,29 @@ from = fromAt @(IndexOf a l)
 -- This might fail since the Vary might actually contain another possibility,
 -- which is why a `Maybe` is returned.
 --
--- If you have a single possibility, you can use `intoOnly`.
+-- If you have a single possibility, you can use `intoOnly` instead.
+--
+-- == Polymorphic functions
+--
+-- If you pass the result to a polymorphic function, GHC might not be able to infer which result type you'd like to try to extract.
+-- Indicate the desired result type using a TypeApplication:
+--
+-- >>> let vary = Vary.from @Bool True :: Vary '[Bool, String]
+-- >>> Vary.into @Bool vary
+-- Just True
+--
+-- == Type errors
+-- Sometimes you might see nasty long type errors, containing the string
+-- `Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location`.
+--
+-- This happens when other parts of your code keep the type list fully abstract (only use the `:|` constraint).
+--
+-- You can fix it by either giving a type to an intermediate value,
+-- or by passing a second type application to this function:
+--
+-- >>> let vary = if True then Vary.from True else Vary.from 'a' -- Inferred type: `Bool :| l, Char :| l => Vary l`
+-- >>> Vary.into @Bool @(Int : Bool : _) vary
+-- Just True
 into :: forall a l. (a :| l) => Vary l -> Maybe a
 {-# INLINE into #-}
 into = intoAt @(IndexOf a l)
@@ -118,7 +147,7 @@ defaultCase = const
 --
 -- In many cases GHC can even look through the old->new Variant structure entirely,
 -- and e.g. inline the variant construction all-together.
-morph :: forall xs ys. (Subset xs ys) => Vary xs -> Vary ys
+morph :: forall ys xs. (Subset xs ys) => Vary xs -> Vary ys
 morph = morph' @xs @ys
 
 fromAt ::
@@ -179,6 +208,44 @@ morphed :: forall a b res. (Subset a b) => (Vary b -> res) -> Vary a -> res
 {-# INLINE morphed #-}
 morphed fun = fun . morph
 
+-- | Run a function on one of the variant's possibilities, keeping all other possibilities the same.
+--
+-- This is the generalization of functions like Either's `mapLeft` and `mapRight`.
+--
+-- If you want to map a polymorphic function like `show` which could match more than one possibility,
+-- use a TypeApplication to specify the desired possibility to match:
+--
+-- >>> Vary.from @Int 42           :: Vary '[Int, Bool]
+-- >>> & Vary.mapOn @Bool show var -- Vary '[Int, String]
+-- >>> & Vary.mapOn @Int show      -- Vary '[String, String]
+--
+-- If you end up with a variant with multiple duplicate possibilities, use `morph` to join them:
+--
+-- >>> Vary.from True               :: Vary '[Char, Int, bool]
+-- >>> & Vary.mapOn @Bool show      -- Vary '[Char, Int, String]
+-- >>> & Vary.mapOn @Int show       -- Vary '[Char, String, String]
+-- >>> & Vary.mapOn @Char show      -- Vary '[String, String, String]
+-- >>> & Vary.morph @'[String]      -- Vary '[String]
+-- >>> & Vary.intoOnly              -- String
+--
+-- Note that if you end up handling all cases of a variant, you might prefer using `Vary.on` and `Vary.exhaustiveCase` instead.
+--
+-- ## Generic code
+--
+-- It is possible to use the most general type of this function in your own signatures;
+-- To do this, add the `Mappable` constraint (exposed from `Vary.Utils`) 
+-- to relate the input variant with the output variant.
+--
+-- >>> example4 :: (Vary.Utils.Mappable Int Bool xs ys, Vary.Utils.Mappable Char Int ys zs) => Vary xs -> Vary zs
+-- >>> example4 vary =
+-- >>>  vary
+-- >>>  & Vary.mapOn @Char ord
+-- >>>  & Vary.mapOn @Int (\x -> x > 0)
+--
+-- ## Duplicate possibilities
+-- Vary.mapOn will only work on the first instance of the type that is encountered.
+-- This is only a problem if a possibility is in the list multiple times;
+-- be sure to `Vary.morph` duplicate possibilities away if needed.
 mapOn :: forall a b xs ys. (Mappable a b xs ys) => (a -> b) -> Vary xs -> Vary ys
 mapOn fun vary@(Vary tag val) = 
   case into @a vary of
