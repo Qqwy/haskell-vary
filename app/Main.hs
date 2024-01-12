@@ -1,12 +1,5 @@
+{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE MagicHash #-}
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE Strict #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -ddump-stg-from-core #-}
 
 module Main (main) where
@@ -19,13 +12,14 @@ import Data.Word
 import Foreign.C.String
 import GHC.Exts
 import Lib
-import Vary (Vary)
+import Vary (Vary, (:|))
 import qualified Vary
+import qualified Vary.Utils
 
 main :: IO ()
 main = do
-  let str = example buildVar
-  putStrLn str
+  let str = Vary.into @String $ example2 buildVar
+  putStrLn (show str)
 
 -- print foo
 -- print world
@@ -58,11 +52,14 @@ boolFun x = if x then "true" else "false"
 -- instance Show Foo where
 --   show (Foo val) = typeError val
 
-hello :: Ptr Word8
-hello = Ptr "hello"#
+-- hello :: Ptr Word8
+-- hello = Ptr "hello"#
 
 {-# NOINLINE world #-}
 world :: (Int, Int, Int)
 world = (1, 2, 3)
 
+-- example2 :: (Int :| xs, String :| ys, Vary.Utils.Mappable Int String xs ys) => Vary xs -> Vary ys
+-- example2 :: Vary (Bool : Int : l) -> Vary (Bool : String : l)
+-- example2 :: Vary.Utils.Mappable Int String xs ys => Vary xs -> Vary ys
 example2 vary = Vary.mapOn @Int show $ vary

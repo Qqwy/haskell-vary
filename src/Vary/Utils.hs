@@ -125,7 +125,7 @@ natValue = fromIntegral (natVal (Proxy :: Proxy n))
 -- | Constraint to link the input and output lists together.
 --
 -- By doing this, we can infer ys from (a,b,xs) or xs from (a,b,ys).
-type Mappable a b xs ys = (ys ~ Mapped a b xs, xs ~ Mapped b a ys)
+type Mappable a b xs ys = (a :| xs, b :| ys, ys ~ Mapped a b xs, xs ~ Mapped b a ys)
 
 -- | Compute a HList where the type a was changed into b.
 type family Mapped (a :: Type) (b :: Type) (as :: [Type]) = (bs :: [Type]) where

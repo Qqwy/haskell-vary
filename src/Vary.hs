@@ -179,7 +179,7 @@ morphed :: forall a b res. (Subset a b) => (Vary b -> res) -> Vary a -> res
 {-# INLINE morphed #-}
 morphed fun = fun . morph
 
-mapOn :: forall a b xs ys. (a :| xs, b :| ys, Mappable a b xs ys) => (a -> b) -> Vary xs -> Vary ys
+mapOn :: forall a b xs ys. (Mappable a b xs ys) => (a -> b) -> Vary xs -> Vary ys
 mapOn fun vary@(Vary tag val) = 
   case into @a vary of
     Just a -> from @b (fun a)
