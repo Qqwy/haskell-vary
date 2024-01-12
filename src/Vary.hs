@@ -154,10 +154,14 @@ defaultCase = const
 -- === Reorder elements:
 -- >>> foo = Vary.from @Int 42 :: Vary '[Bool, Int]
 -- >>> bar = Vary.morph foo    :: Vary '[Int, Bool]
+-- >>> bar
+-- Vary.from 42
 --
 -- === Get rid of duplicate elements:
--- >>> duplicates = Vary.from @Int 42       :: Vary '[Int, Int, Int]
+-- >>> duplicates = Vary.from @Int 69       :: Vary '[Int, Int, Int]
 -- >>> noduplicates = Vary.morph duplicates :: Vary '[Int]
+-- >>> noduplicates
+-- Vary.from 69
 --
 -- == Efficiency
 -- This is a O(1) operation, as the tag number stored in the variant is
@@ -198,12 +202,17 @@ intoAt (Vary t a) = do
 -- Even though in many cases GHC is able to infer the types,
 -- it is a good idea to combine it with `TypeApplications`:
 --
--- > -- Note that GHC can infer this type without problems:
--- > -- example :: Vary (Bool : Int : l) -> String
--- > example =
--- >   Vary.on @Bool show
--- >   $ Vary.on @Int (\x -> show (x + 1))
--- >   $ Vary.defaultCase "other value"
+-- Note that by doing so, GHC can infer the type of the function without problems:
+--
+-- >>> :{
+--   example =
+--     Vary.on @Bool show
+--     $ Vary.on @Int (\x -> show (x + 1))
+--     $ Vary.defaultCase "other value" 
+-- :}
+--
+-- >>> :t example
+-- example :: Vary (Bool : Int : l) -> String
 on :: forall a b l. (a -> b) -> (Vary l -> b) -> Vary (a : l) -> b
 {-# INLINE on #-}
 on thisFun restFun vary =
