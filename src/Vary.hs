@@ -65,6 +65,7 @@ import Vary.Utils
 --
 -- This module is intended to be used qualified:
 --
+-- >>> import Vary (Vary, (:|))
 -- >>> import qualified Vary
 -- 
 -- And for many functions, it is useful or outright necessary to enable the following extensions:

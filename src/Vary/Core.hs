@@ -83,18 +83,21 @@ instance Eq (Vary '[]) where
   (==) = emptyVaryError "Eq.(==)"
 
 instance (Eq a, Eq (Vary as)) => Eq (Vary (a : as)) where
+    {-# INLINE (==) #-}
     a == b = pop a == pop b
 
 instance Ord (Vary '[]) where
     compare = emptyVaryError "Ord.compare"
 
 instance (Ord a, Ord (Vary as)) => Ord (Vary (a : as)) where
+    {-# INLINE compare #-}
     l `compare` r = pop l `compare` pop r
 
 instance Show (Vary '[]) where
     show = emptyVaryError "Show.show"
 
 instance (Show a, Show (Vary as)) => Show (Vary (a : as)) where
+    {-# INLINE show #-}
     show vary = case pop vary of
         Right val -> "Vary.from " <> show val
         Left other -> show other
@@ -103,4 +106,5 @@ instance NFData (Vary '[]) where
     rnf = emptyVaryError "NFData.rnf"
 
 instance (NFData a, NFData (Vary as)) => NFData (Vary (a : as)) where
+    {-# INLINE rnf #-}
     rnf vary = rnf (pop vary)
