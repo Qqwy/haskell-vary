@@ -82,14 +82,14 @@ import Vary.Utils
 --
 -- >>> let thingy :: Vary [Bool, Char]; thingy = Vary.from 'a'
 -- >>> thingy
--- Vary.from 'a'
+-- Vary.from @Char 'a'
 --
 -- In the case of number literals or (with OverloadedStrings or OverloadedLists enabled) string or list literals,
 -- it might be necessary to include a TypeApplication.
 -- In most other cases, GHC is able to infer which possibility to use (though you might still like type applications even here for improved readability).
 --
 -- >>> Vary.from @Int 42 :: Vary [Int, String]
--- Vary.from 42
+-- Vary.from @Int 42
 --
 -- In the case of the Vary contains duplicate types,
 -- the first matching type index is used.
@@ -172,19 +172,19 @@ defaultCase = const
 -- >>> small = Vary.from True :: Vary '[Bool]
 -- >>> big = Vary.morph small :: Vary [Bool, Int, String]
 -- >>> big
--- Vary.from True
+-- Vary.from @Bool True
 --
 -- === Reorder elements:
 -- >>> boolfirst = Vary.from @Int 42   :: Vary [Bool, Int]
 -- >>> intfirst = Vary.morph boolfirst :: Vary [Int, Bool]
 -- >>> intfirst
--- Vary.from 42
+-- Vary.from @Int 42
 --
 -- === Get rid of duplicate elements:
 -- >>> duplicates = Vary.from @Int 69       :: Vary [Int, Int, Int]
 -- >>> noduplicates = Vary.morph duplicates :: Vary '[Int]
 -- >>> noduplicates
--- Vary.from 69
+-- Vary.from @Int 69
 --
 -- === Type applications
 -- Morph intentionally takes the result type list as first type-application parameter.
@@ -280,7 +280,7 @@ morphed fun = fun . morph
 --   & Vary.mapOn @Bool show    -- Vary [Int, String]
 --   & Vary.mapOn @Int show     -- Vary [String, String]
 -- :}
--- Vary.from "42"
+-- Vary.from @[Char] "42"
 --
 -- If you end up with a variant with multiple duplicate possibilities, use `morph` to join them:
 --

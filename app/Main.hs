@@ -67,7 +67,7 @@ world = (1, 2, 3)
 example2 :: Vary '[Int, Bool] -> Vary '[String, Bool]
 example2 vary = Vary.mapOn @Int show $ vary
 
-example3 :: Vary (Bool : String : Int : l) -> Vary (String : l)
+-- example3 :: Vary (Bool : String : Int : l) -> Vary (String : l)
 example3 vary = 
   vary
   & Vary.mapOn @Int show
@@ -80,3 +80,6 @@ example4 vary =
   vary
   & Vary.mapOn @Char ord
   & Vary.mapOn @Int (\x -> x > 0)
+
+-- hmm :: (Show (Vary )) => Vary (a : l) -> String
+hmm vary = show @(Vary _) vary

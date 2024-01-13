@@ -1,34 +1,13 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE GHC2021 #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 {-# OPTIONS_GHC -ddump-stg-from-core #-}
 {-# OPTIONS_HADDOCK not-home #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use camelCase" #-} -- <- We want a fun long type name with underscores for easier to read errors ;-)
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
-{-# LANGUAGE GHC2021 #-}
-{-# OPTIONS_GHC -Wno-redundant-constraints #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 module Vary.Utils(
   
     -- * Useful in generic code
@@ -186,7 +165,7 @@ type Mappable a b xs ys = (a :| xs, b :| ys, ys ~ Mapped a b xs)
 -- | Compute a HList where the type a was changed into b.
 type family Mapped (a :: Type) (b :: Type) (as :: [Type]) = (bs :: [Type]) where
   Mapped a b (a ': as)  = (b ': as)
-  Mapped a b (x ': as) = x ': (Mapped a b as)
+  Mapped a b (x ': as) = x ': Mapped a b as
   Mapped a b l = TypeError (
     'Text "Cannot map from " ':<>: 'ShowType a ':<>: 'Text " into " ':<>: 'ShowType b 
     :$$: 'Text "as it cannot be found in the list " ':<>: 'ShowType l)

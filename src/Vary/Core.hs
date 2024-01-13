@@ -30,6 +30,10 @@ import Control.DeepSeq (NFData (..))
 import Control.Exception (Exception(..))
 import Data.Typeable (Typeable, typeOf)
 
+-- $setup
+-- >>> :set -XGHC2021
+-- >>> :set -XDataKinds
+
 -- | Vary, contains one value out of a set of possibilities
 --
 -- Vary is what is known as a /Variant/ type.
@@ -98,16 +102,25 @@ instance (Ord a, Ord (Vary as)) => Ord (Vary (a : as)) where
 instance Show (Vary '[]) where
     show = emptyVaryError "Show.show"
 
--- instance {-# OVERLAPS #-} (Show a, Show (Vary as)) => Show (Vary (a : as)) where
---     {-# INLINE show #-}
---     show vary = case pop vary of
---         Right val -> "Vary.from " <> show val
---         Left other -> show other
-
-instance (Typeable a, Show a, Typeable (Vary as), Show (Vary as)) => Show (Vary (a : as)) where
-    show vary = case pop vary of
-        Right val -> "Vary.from " <> "@" <> show (typeOf val) <> " " <> show val
-        Left other -> show other
+-- | `Vary`'s 'Show' instance only works for types which are 'Typeable'
+--
+-- This is intentional, as it allows us to print the name of the type which
+-- the current value is of.
+--
+-- >>> Vary.from @Bool True :: Vary '[Int, Bool, String]
+-- Vary.from @Bool True
+--
+-- >>> Vary.from @(Maybe Int) (Just 1234) :: Vary '[Maybe Int, Bool]
+-- Vary.from @(Maybe Int) (Just 1234)
+instance (Typeable a, Show a, Show (Vary as)) => Show (Vary (a : as)) where
+    showsPrec d vary = case pop vary of
+        Right val ->
+            showString "Vary.from " . 
+            showString "@" . 
+            showsPrec (d+10) (typeOf val) . 
+            showString " " . 
+            showsPrec (d+11) val
+        Left other -> showsPrec d other
 
 instance NFData (Vary '[]) where
     rnf = emptyVaryError "NFData.rnf"
