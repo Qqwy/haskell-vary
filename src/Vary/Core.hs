@@ -104,7 +104,7 @@ instance Show (Vary '[]) where
 
 -- | `Vary`'s 'Show' instance only works for types which are 'Typeable'
 --
--- This is intentional, as it allows us to print the name of the type which
+-- This allows us to print the name of the type which
 -- the current value is of.
 --
 -- >>> Vary.from @Bool True :: Vary '[Int, Bool, String]
@@ -132,8 +132,21 @@ instance (NFData a, NFData (Vary as)) => NFData (Vary (a : as)) where
 
 instance (Typeable (Vary '[]), Show (Vary '[])) => Exception (Vary '[]) where
 
-instance (Exception e, Exception (Vary errs), Typeable (Vary (e : errs)), Show (Vary (e : errs))) => Exception (Vary (e : errs)) where
+-- | See [Vary and Exceptions](#vary_and_exceptions) for more info.
+instance (Exception e, Exception (Vary errs), Typeable errs) => Exception (Vary (e : errs)) where
     displayException vary = 
         case pop vary of
             Right val -> displayException val
             Left rest -> displayException rest
+
+    toException vary = 
+        case pop vary of
+            Right val -> toException val
+            Left rest -> toException rest
+    
+    fromException some_exception = 
+        case fromException @e some_exception of
+            Just e -> Just (Vary 0 (Data.Coerce.unsafeCoerce e))
+            Nothing -> case fromException @(Vary errs) some_exception of
+                Just (Vary tag err) -> Just (Data.Coerce.unsafeCoerce (Vary (tag+1) err))
+                Nothing -> Nothing

@@ -23,6 +23,8 @@
 
 module Vary
   ( -- $setup
+   
+    -- $vary_and_exceptions
 
     -- * Core type definition
     Vary,
@@ -76,6 +78,60 @@ import Vary.Utils
 -- Finally, some examples snippets in this module make use of 'Data.Function.&', the left-to-right function composition operator:
 --
 -- >>> import Data.Function ((&))
+
+-- $vary_and_exceptions
+--
+-- == Vary and Exceptions #vary_and_exceptions#
+--
+-- 'Vary' implements 'Control.Exception.Exception', 
+-- and is an /excellent/ type to use with 'Control.Exception.throw' and 'Control.Exception.catch.
+--
+-- >>> import Control.Exception
+-- >>> no_xyzzy  = Vary.from (NoMethodError "xyzzy") :: Vary '[NoMethodError, ArithException]
+-- >>> divby0    = Vary.from DivideByZero            :: Vary '[NoMethodError, ArithException]
+--
+-- >>> throw no_xyzzy `catch` \(e :: Vary '[NoMethodError, ArithException]) -> putStrLn ("Caught: `" <> show e <> "`")
+-- Caught: `Vary.from @NoMethodError xyzzy`
+--
+-- === Catching individual errors of a thrown 'Vary'
+--
+-- 'Control.Exception.toException' is implemented to throw the particular /internal/ type.
+--
+-- This means that you can catch any of the particular individual possibilities of a thrown Vary if you like,
+-- and have the others bubble up:
+--
+-- >>> throw no_xyzzy `catch` \(e :: NoMethodError) -> putStrLn ("Caught: `" <> show e <> "`")
+-- Caught: `xyzzy`
+--
+-- >>> throw divby0 `catch` \(e :: NoMethodError) -> putStrLn ("Caught: `" <> show e <> "`")
+-- *** Exception: divide by zero
+--
+-- === Catching groups of (individually thrown) errors
+--
+-- Also, 'Control.Exception.fromException' is implemented to /match/ any of the contained possibilities:
+--
+-- >>> catcher inner = inner `catch` \(e :: Vary '[NoMethodError, ArithException]) -> putStrLn ("Caught: `" <> show e <> "`")
+--
+-- So not only is the following exception caught:
+--
+-- >>> vary = Vary.from (NoMethodError "plover") :: Vary '[NoMethodError, ArithException]
+-- >>> catcher (throw vary)
+-- Caught: `Vary.from @NoMethodError plover`
+--
+-- But it will also catch a thrown @ArithException@
+--
+-- >>> catcher (throw DivideByZero)
+-- Caught: `Vary.from @ArithException divide by zero`
+--
+-- or a thrown @NoMethodError@!
+--
+-- >>> catcher (throw (NoMethodError "plugh"))
+-- Caught: `Vary.from @NoMethodError plugh`
+--
+-- /(and other exceptions of course still bubble up)/
+--
+-- >>> catcher (throw AllocationLimitExceeded)
+-- *** Exception: allocation limit exceeded
 
 
 -- | Builds a Vary from the given value.
