@@ -51,5 +51,5 @@ instance Applicative (VEither errs) where
 
 instance Monad (VEither errs) where
   (>>=) :: forall a b. VEither errs a -> (a -> VEither errs b) -> VEither errs b
-  (VEither val) >>= fun = 
+  (VEither val) >>= fun =
     val & on @a fun (VEither . Vary.morph)

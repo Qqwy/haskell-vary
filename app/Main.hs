@@ -7,7 +7,7 @@ module Main (main) where
 import Control.Exception.Base
 import Data.Array.Byte (ByteArray)
 import Data.Function ((&))
-import qualified Data.Vector.Unboxed as UVector
+-- import qualified Data.Vector.Unboxed as UVector
 import Data.Word
 import Foreign.C.String
 import GHC.Exts
@@ -31,16 +31,17 @@ buildVar = Vary.from @Int 1234
 -- example :: Vary (Bool : Int : l) -> String
 example :: Vary [Bool, Int] -> String
 example =
-      Vary.morphed
-      $ Vary.on @Int show
-      $ Vary.on boolFun
-      $ Vary.exhaustiveCase
-      -- $ Vary.defaultCase "Hmm"
- --Vary.defaultCase "hmm"
--- Vary.exhaustiveCase
--- & Vary.on boolFun
--- & Vary.on @Int show
--- & Vary.morphed
+  Vary.morphed $
+    Vary.on @Int show $
+      Vary.on boolFun $
+        Vary.exhaustiveCase
+
+-- \$ Vary.defaultCase "Hmm"
+-- Vary.defaultCase "hmm"
+--  Vary.exhaustiveCase
+--  & Vary.on boolFun
+--  & Vary.on @Int show
+--  & Vary.morphed
 
 boolFun :: Bool -> String
 boolFun x = if x then "true" else "false"

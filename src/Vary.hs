@@ -48,11 +48,11 @@ where
 import Control.Monad (guard)
 import Data.Function ((&))
 import Data.Kind
-import qualified Data.Vector.Unboxed as UVector
+-- import qualified Data.Vector.Unboxed as UVector
 import GHC.Exts (Any)
 import GHC.TypeLits
 import Unsafe.Coerce (unsafeCoerce)
-import Vary.Core (Vary (..))
+import Vary.Core (Vary (..), popVary)
 import Vary.Utils
 
 -- $setup
@@ -208,7 +208,7 @@ intoAt (Vary t a) = do
 
 -- | Handle a particular variant possibility.
 --
--- This is the main way to 'deconstruct' or a variant.
+-- This is the main way to do case analysis (or 'deconstruct') a variant.
 --
 -- Use it together with `exhaustiveCase` if you handle all possibilities,
 -- or `defaultCase` if you don't want to.

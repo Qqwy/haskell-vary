@@ -18,12 +18,15 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Vary.Core (Vary(..)) where
+{-# LANGUAGE NoStarIsType #-}
+
+module Vary.Core (Vary (..), popVary) where
+
 import Data.Kind (Type)
 import GHC.Exts (Any)
-import Unsafe.Coerce
+import qualified Unsafe.Coerce as Data.Coerce
+import Control.DeepSeq (NFData (..))
 
 -- | Vary, contains one value out of a set of possibilities
 --
@@ -44,11 +47,35 @@ import Unsafe.Coerce
 -- `Vary`'s can be constructed with "Vary".`Vary.from` and values can be extracted using "Vary".`Vary.into` and "Vary".'Vary.on' .
 data Vary (possibilities :: [Type]) = Vary {-# UNPACK #-} !Word Any
 
+emptyVaryError name = error (name <> " was called on empty Vary '[]")
+
+popVary :: Vary (a ': as) -> Either (Vary as) a
+{-# INLINE popVary #-}
+popVary (Vary 0 val) = Right (Data.Coerce.unsafeCoerce val)
+popVary (Vary tag val) = Left (Data.Coerce.unsafeCoerce (Vary (tag - 1) val))
+
+instance Eq (Vary '[]) where
+  (==) = emptyVaryError "Eq.(==)"
+
+instance (Eq a, Eq (Vary as)) => Eq (Vary (a ': as)) where
+    a == b = popVary a == popVary b
+
+instance Ord (Vary '[]) where
+    compare = emptyVaryError "Ord.compare"
+
+instance (Ord a, Ord (Vary as)) => Ord (Vary (a ': as)) where
+    l `compare` r = popVary l `compare` popVary r
+
 instance Show (Vary '[]) where
-    show = emptyVaryError "show"
+    show = emptyVaryError "Show.show"
 
 instance (Show a, Show (Vary as)) => Show (Vary (a ': as)) where
-    show (Vary 0 any) = "Vary.from " <> (show @a $ unsafeCoerce any)
-    show (Vary n any) = show @(Vary as) $ unsafeCoerce (Vary (n-1) any)
+    show vary = case popVary vary of
+        Right val -> "Vary.from " <> show val
+        Left other -> show other
 
-emptyVaryError name = error (name <> " was called on empty Vary '[]")
+instance NFData (Vary '[]) where
+    rnf = emptyVaryError "NFData.rnf"
+
+instance (NFData a, NFData (Vary as)) => NFData (Vary (a ': as)) where
+    rnf vary = rnf (popVary vary)
