@@ -33,10 +33,17 @@ module Vary
     into,
     intoOnly,
 
-    -- * 'pattern' matching:
+    -- * case analysis ("pattern matching"):
+
+    -- |
+    -- Vary does not support traditional pattern matching,
+    -- because GHC is not able to check them for exhaustiveness.
+    --
+    -- Instead, Vary supports the next best thing: building up a pattern match using the 'on' combinator.
     on,
     exhaustiveCase,
     defaultCase,
+    pop,
 
     -- * Transforming
     mapOn,
@@ -46,13 +53,10 @@ module Vary
 where
 
 import Control.Monad (guard)
-import Data.Function ((&))
 import Data.Kind
--- import qualified Data.Vector.Unboxed as UVector
-import GHC.Exts (Any)
 import GHC.TypeLits
 import Unsafe.Coerce (unsafeCoerce)
-import Vary.Core (Vary (..), popVary)
+import Vary.Core (Vary (..))
 import Vary.Utils
 
 -- $setup
@@ -75,7 +79,7 @@ import Vary.Utils
 
 -- | Builds a Vary from the given value.
 --
--- >>> let thingy :: Vary '[Bool, Char]; thingy = Vary.from 'a'
+-- >>> let thingy :: Vary [Bool, Char]; thingy = Vary.from 'a'
 -- >>> thingy
 -- Vary.from 'a'
 --
@@ -83,7 +87,7 @@ import Vary.Utils
 -- it might be necessary to include a TypeApplication.
 -- In most other cases, GHC is able to infer which possibility to use (though you might still like type applications even here for improved readability).
 --
--- >>> Vary.from @Int 42 :: Vary '[Int, String]
+-- >>> Vary.from @Int 42 :: Vary [Int, String]
 -- Vary.from 42
 --
 -- In the case of the Vary contains duplicate types,
@@ -105,7 +109,7 @@ from = fromAt @(IndexOf a l)
 -- If you pass the result to a polymorphic function, GHC might not be able to infer which result type you'd like to try to extract.
 -- Indicate the desired result type using a TypeApplication:
 --
--- >>> let vary = Vary.from @Bool True :: Vary '[Bool, String]
+-- >>> let vary = Vary.from @Bool True :: Vary [Bool, String]
 -- >>> Vary.into @Bool vary
 -- Just True
 --
@@ -138,14 +142,18 @@ intoOnly :: forall a. Vary '[a] -> a
 {-# INLINE intoOnly #-}
 intoOnly (Vary _ val) = unsafeCoerce val
 
--- | Base case of an exhaustive pattern match. Use it together with `on`.
+-- | Base case of an exhaustive pattern match. 
+--
+-- Use it together with `on`, 
+-- or whenever you have an empty `Vary '[]` that you need to get rid of.
+-- (Like in a recursive typeclass definition. See "Vary".'pop')
 --
 -- Since it is impossible to actually /construct/ a value of the type @Vary '[]@,
 -- we can "turn it into anything", just like `Data.Void.absurd`.
 exhaustiveCase :: forall anything. Vary '[] -> anything
 {-# INLINE exhaustiveCase #-}
 exhaustiveCase _vary =
-  error "exhaustiveCase was unexpectedly called!"
+  error "Somehow someone got their hands on a runtime value of type Vary '[]. This should be impossible, so someone did a bad unsafeCoerce somewhere!"
 
 -- | Base case of a non-exhaustive pattern match. Use it together with `on`.
 --
@@ -161,21 +169,30 @@ defaultCase = const
 --
 -- === Extend a smaller `Vary`:
 -- >>> small = Vary.from True :: Vary '[Bool]
--- >>> big = Vary.morph small :: Vary '[Bool, Int, String]
+-- >>> big = Vary.morph small :: Vary [Bool, Int, String]
 -- >>> big
 -- Vary.from True
 --
 -- === Reorder elements:
--- >>> foo = Vary.from @Int 42 :: Vary '[Bool, Int]
--- >>> bar = Vary.morph foo    :: Vary '[Int, Bool]
--- >>> bar
+-- >>> boolfirst = Vary.from @Int 42   :: Vary [Bool, Int]
+-- >>> intfirst = Vary.morph boolfirst :: Vary [Int, Bool]
+-- >>> intfirst
 -- Vary.from 42
 --
 -- === Get rid of duplicate elements:
--- >>> duplicates = Vary.from @Int 69       :: Vary '[Int, Int, Int]
+-- >>> duplicates = Vary.from @Int 69       :: Vary [Int, Int, Int]
 -- >>> noduplicates = Vary.morph duplicates :: Vary '[Int]
 -- >>> noduplicates
 -- Vary.from 69
+--
+-- === Type applications
+-- Morph intentionally takes the result type list as first type-application parameter.
+-- This allows you to write above examples in this more concise style instead:
+--
+-- >>> big = Vary.morph @[Bool, Int, String] small
+-- >>> intfirst = Vary.morph @[Int, Bool] boolfirst
+-- >>> noduplicates = Vary.morph @'[Int] duplicates
+--
 --
 -- == Efficiency
 -- This is a O(1) operation, as the tag number stored in the variant is
@@ -219,10 +236,12 @@ intoAt (Vary t a) = do
 -- Note that by doing so, GHC can infer the type of the function without problems:
 --
 -- >>> :{
---   example =
---     Vary.on @Bool show
+--   example vary =
+--     vary &
+--     ( Vary.on @Bool show
 --     $ Vary.on @Int (\x -> show (x + 1))
---     $ Vary.defaultCase "other value" 
+--     $ Vary.defaultCase "other value"
+--     )
 -- :}
 --
 -- >>> :t example
@@ -250,26 +269,26 @@ morphed fun = fun . morph
 
 -- | Run a function on one of the variant's possibilities, keeping all other possibilities the same.
 --
--- This is the generalization of functions like Either's `Data.Either.mapLeft` and `Data.Either.mapRight`.
+-- This is the generalization of functions like Either's `Data.Either.Extra.mapLeft` and `Data.Either.Extra.mapRight`.
 --
 -- If you want to map a polymorphic function like `show` which could match more than one possibility,
 -- use a TypeApplication to specify the desired possibility to match:
 --
 -- >>> :{
--- (Vary.from @Int 42           :: Vary '[Int, Bool] )
---   & Vary.mapOn @Bool show    -- Vary '[Int, String]
---   & Vary.mapOn @Int show     -- Vary '[String, String]
+-- (Vary.from @Int 42           :: Vary [Int, Bool] )
+--   & Vary.mapOn @Bool show    -- Vary [Int, String]
+--   & Vary.mapOn @Int show     -- Vary [String, String]
 -- :}
 -- Vary.from "42"
 --
 -- If you end up with a variant with multiple duplicate possibilities, use `morph` to join them:
 --
 -- >>> :{ 
--- (Vary.from True                :: Vary '[Char, Int, Bool])
---   & Vary.mapOn @Bool show      -- Vary '[Char, Int, String]
---   & Vary.mapOn @Int show       -- Vary '[Char, String, String]
---   & Vary.mapOn @Char show      -- Vary '[String, String, String]
---   & Vary.morph @'[String]      -- Vary '[String]
+-- (Vary.from True                :: Vary [Char, Int, Bool])
+--   & Vary.mapOn @Bool show      -- Vary [Char, Int, String]
+--   & Vary.mapOn @Int show       -- Vary [Char, String, String]
+--   & Vary.mapOn @Char show      -- Vary [String, String, String]
+--   & Vary.morph @'[String]       -- Vary '[String]
 --   & Vary.intoOnly              -- String
 -- :}
 -- "True"

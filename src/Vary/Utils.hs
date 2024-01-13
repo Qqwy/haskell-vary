@@ -30,13 +30,23 @@
 {-# LANGUAGE GHC2021 #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 module Vary.Utils(
-  (:|), KnownPrefix(..), Length, Subset(..), Index, IndexOf, Mappable, 
   
-  natValue, 
+    -- * Useful in generic code
+    (:|), 
+    KnownPrefix(..), 
+    Length, 
+    Subset(..), 
+    Index, 
+    IndexOf, 
+    Mappable, 
+    pop,
 
     -- * Informational
     size,
     activeIndex,
+
+    -- * Helper
+    natValue, 
 ) where
 
 import Data.Kind (Constraint, Type)
@@ -50,11 +60,7 @@ import GHC.TypeLits
     type (+),
     type (-),
   )
-import Unsafe.Coerce (unsafeCoerce)
-import Vary.Core (Vary (..), popVary)
-
--- import qualified Data.Vector.Unboxed as UVector
--- type UVector = UVector.Vector
+import Vary.Core (Vary (..), pop)
 
 -- | Constrain `es` to be any type list containing `e`.
 --

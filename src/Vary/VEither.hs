@@ -26,10 +26,9 @@ module Vary.VEither where
 
 import Data.Function ((&))
 import Data.Kind (Type)
-import Unsafe.Coerce (unsafeCoerce)
 import Vary
 
-newtype VEither (errs :: [Type]) a = VEither (Vary (a ': errs))
+newtype VEither (errs :: [Type]) a = VEither (Vary (a : errs))
 
 instance Functor (VEither errs) where
   fmap :: forall a b. (a -> b) -> VEither errs a -> VEither errs b
