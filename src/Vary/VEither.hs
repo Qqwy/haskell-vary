@@ -10,6 +10,7 @@ module Vary.VEither (
   toVary, 
   fromVary,
   fromLeft,
+  fromRight,
   toEither,
   fromEither,
   veither,

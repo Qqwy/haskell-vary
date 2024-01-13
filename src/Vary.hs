@@ -86,14 +86,21 @@ import Vary.Utils
 
  Say we are writing an image thumbnailing service.
 
- - Given an image URL
- - We attempt to download it.
-   - This can fail, because the URL is incorrect;
-   - Or the URL /is/ correct but the server could not be reached (in which case we want to re-try later);
-   - Or the server /could/ be reached, but downloading took longer than a set time limit.
- - We pass it to a thumbnailing program.
-   - This can fail, because the downloaded file might turn out actually not to be a valid image file (PNG or JPG);
-   - Or even if the downloaded file /is/ an image, it might have a much too high resolution to attempt to read;
+ * Given an image URL
+
+ * We attempt to download it.
+
+     * This can fail, because the URL is incorrect;
+
+     * Or the URL /is/ correct but the server could not be reached (in which case we want to re-try later);
+
+     * Or the server /could/ be reached, but downloading took longer than a set time limit.
+
+ * We pass it to a thumbnailing program.
+
+     * This can fail, because the downloaded file might turn out actually not to be a valid image file (PNG or JPG);
+
+     * Or even if the downloaded file /is/ an image, it might have a much too high resolution to attempt to read;
 
 
  The first instinct of many Haskell programmers is to write dedicated sum types for these errors like so:
@@ -195,7 +202,8 @@ And here is all that needed to change to have a retry:
 >>> :{
 thumbnailService :: String -> VEither [IncorrectUrl, NotAnImage, TooBigImage] Image
 thumbnailService url = do
-  image <- download url & VEither.onLeft (\ServerUnreachable -> waitAndRetry 10 (\_ -> thumbnailService url)) id
+  image <- download url 
+           & VEither.onLeft (\ServerUnreachable -> waitAndRetry 10 (\_ -> thumbnailService url)) id
   thumb <- thumbnail image
   pure thumb
 :}
