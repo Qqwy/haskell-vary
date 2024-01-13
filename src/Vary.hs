@@ -20,6 +20,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoStarIsType #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
 module Vary
   ( -- * Core type definition
@@ -37,6 +38,10 @@ module Vary
     defaultCase,
 
     -- * Transforming
+    mapOn,
+    mapOn',
+    mapOn3,
+    Mapped,
     morph,
     morphed,
 
@@ -49,11 +54,11 @@ where
 import Control.Monad (guard)
 import Data.Function ((&))
 import Data.Kind
-import qualified Data.Vector.Unboxed as UVector
+-- import qualified Data.Vector.Unboxed as UVector
 import GHC.Exts (Any)
 import GHC.TypeLits
 import Unsafe.Coerce (unsafeCoerce)
-import Vary.Core (Vary (..))
+import Vary.Core (Vary (..), popVary)
 import Vary.Utils
 
 size :: forall xs. (KnownNat (Length xs)) => Vary xs -> Word
@@ -142,7 +147,7 @@ intoAt (Vary t a) = do
 
 -- | Handle a particular variant possibility.
 --
--- This is the main way to 'deconstruct' or a variant.
+-- This is the main way to do case analysis (or 'deconstruct') a variant.
 --
 -- Use it together with `exhaustiveCase` if you handle all possibilities,
 -- or `defaultCase` if you don't want to.
@@ -169,6 +174,26 @@ on thisFun restFun vary =
     coerceHigher :: Vary (a : l) -> Vary l
     coerceHigher (Vary idx val) =
       unsafeCoerce (Vary (idx - 1) val)
+
+-- -- mapOn :: forall a b l. (a -> b) -> Vary (a ': l) -> Vary (b ': l)
+-- mapOn :: forall a b l1 l2. (a :| l1, b :| l2, Subset l1 l2) => (a -> b) -> Vary l1 -> Vary l2 
+-- mapOn fun vary = on @a (from @b . fun) morph (morph vary)
+
+mapOn3 :: forall a b l. (a -> b) -> Vary (a : l) -> Vary (b : l)
+mapOn3 fun vary = case Vary.Core.popVary vary of
+  Right val -> from @b (fun val)
+  Left other -> morph other
+
+mapOn :: forall a b xs ys. (a :| xs, Mapped a b xs ys) => (a -> b) -> Vary xs -> Vary ys
+mapOn = mapVary @a @b @xs @ys
+
+mapOn' :: forall a b xs ys. (a :| xs) => (a -> b) -> Vary xs -> Vary (ReplaceN (IndexOf a xs) b ys)
+mapOn' = undefined
+
+-- mapOn :: forall a b xs ys. (a :| xs, b :| ys, ys ~ Mapped a b xs) => (a -> b) -> Vary xs -> Vary ys
+-- mapOn fun vary = case into @a vary of
+--   Nothing -> unsafeCoerce vary
+--   Just a -> from @b (fun a)
 
 -- | Execute a function expecting a larger (or differently-ordered) variant
 --
