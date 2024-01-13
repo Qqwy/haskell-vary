@@ -27,6 +27,8 @@ import Data.Kind (Type)
 import GHC.Exts (Any)
 import qualified Unsafe.Coerce as Data.Coerce
 import Control.DeepSeq (NFData (..))
+import Control.Exception (Exception(..))
+import Data.Typeable (Typeable, typeOf)
 
 -- | Vary, contains one value out of a set of possibilities
 --
@@ -96,10 +98,15 @@ instance (Ord a, Ord (Vary as)) => Ord (Vary (a : as)) where
 instance Show (Vary '[]) where
     show = emptyVaryError "Show.show"
 
-instance (Show a, Show (Vary as)) => Show (Vary (a : as)) where
-    {-# INLINE show #-}
+-- instance {-# OVERLAPS #-} (Show a, Show (Vary as)) => Show (Vary (a : as)) where
+--     {-# INLINE show #-}
+--     show vary = case pop vary of
+--         Right val -> "Vary.from " <> show val
+--         Left other -> show other
+
+instance (Typeable a, Show a, Typeable (Vary as), Show (Vary as)) => Show (Vary (a : as)) where
     show vary = case pop vary of
-        Right val -> "Vary.from " <> show val
+        Right val -> "Vary.from " <> "@" <> show (typeOf val) <> " " <> show val
         Left other -> show other
 
 instance NFData (Vary '[]) where
@@ -108,3 +115,12 @@ instance NFData (Vary '[]) where
 instance (NFData a, NFData (Vary as)) => NFData (Vary (a : as)) where
     {-# INLINE rnf #-}
     rnf vary = rnf (pop vary)
+
+
+instance (Typeable (Vary '[]), Show (Vary '[])) => Exception (Vary '[]) where
+
+instance (Exception e, Exception (Vary errs), Typeable (Vary (e : errs)), Show (Vary (e : errs))) => Exception (Vary (e : errs)) where
+    displayException vary = 
+        case pop vary of
+            Right val -> displayException val
+            Left rest -> displayException rest
