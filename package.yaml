@@ -68,4 +68,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - vary
+    - either
     - doctest-parallel
