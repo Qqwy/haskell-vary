@@ -9,16 +9,28 @@ module Vary.VEither (
   -- * Conversion
   toVary, 
   fromVary,
+  fromLeft,
   toEither,
   fromEither,
-  veither
+  veither,
+  intoOnly,
+  -- * case analysis ("pattern matching"):
+
+  -- |
+  --
+  -- Besides the 'VLeft' and 'VRight' patterns,
+  -- 'VEither' supports a bunch of handy combinator functions,
+  -- similar to "Vary".'Vary.on' and co.
+  onLeft,
+  onRight,
 ) where
 
 import Control.Category ((>>>))
 import Control.DeepSeq (NFData (..))
 import qualified Data.Either
 import Data.Kind (Type)
-import Vary (Vary)
+import Vary.Core (Vary(..))
+import Vary ((:|))
 import qualified Vary
 import GHC.Generics
 import Unsafe.Coerce
@@ -55,6 +67,13 @@ fromEither :: Either (Vary errs) a -> VEither errs a
 {-# INLINE fromEither #-}
 fromEither = Data.Either.either Vary.morph Vary.from >>> fromVary
 
+-- | Shorthand to construct a VLeft from a single left value.
+fromLeft :: forall err errs a. err :| errs => err -> VEither errs a
+fromLeft = Vary.from @err >>> VLeft
+
+fromRight :: forall a errs. a -> VEither errs a
+fromRight = VRight
+
 veither :: (Vary errs -> c) -> (a -> c) -> VEither errs a -> c
 veither f _ (VLeft x)     =  f x
 veither _ g (VRight y)    =  g y
@@ -65,13 +84,27 @@ pattern VLeft :: forall a errs. Vary errs -> VEither errs a
 {-# INLINE VLeft #-}
 pattern VLeft errs <- (toEither -> Left errs)
    where
-      VLeft errs = VEither (Vary.morph errs)
+      VLeft (Vary tag err) = VEither ((Vary (tag+1) err))
 
 pattern VRight :: forall a errs. a -> VEither errs a
 {-# INLINE VRight #-}
 pattern VRight a <- (toEither -> Right a)
   where
     VRight a = VEither (Vary.from @a a)
+
+onLeft :: forall err b errs a. (err -> b) -> (VEither errs a -> b) -> VEither (err : errs) a -> b
+onLeft thiserrFun restfun ve = case ve of
+  VLeft e -> Vary.on @err thiserrFun (\otherErr -> restfun (VLeft otherErr)) e
+  VRight a -> restfun (VRight a)
+
+onRight :: (a -> b) -> (VEither errs a -> b) -> VEither errs a -> b
+onRight valfun restfun ve = case ve of
+  VRight a -> valfun a
+  VLeft err -> restfun (VLeft err)
+
+intoOnly :: forall a. VEither '[] a -> a
+intoOnly (VRight a) = a
+intoOnly (VLeft emptyVary) = Vary.exhaustiveCase emptyVary
 
 instance (Show a, Show (Vary errs)) => Show (VEither errs a) where
   show (VLeft errs) = "VLeft (" <> show errs <> ")"
@@ -125,6 +158,8 @@ instance Semigroup (VEither errs a) where
   (VRight a) <> _ = (VRight a)
   _ <> b = b
 
+
+-- Look ma! A Hand-written Generic instance!
 instance Generic (VEither errs a) where
   type (Rep (VEither errs a)) =  D1
        (MetaData "VEither" "Vary.VEither" "vary" False)

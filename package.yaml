@@ -37,6 +37,8 @@ ghc-options:
 
 library:
   source-dirs: src
+  other-modules:
+    - Vary.Core
 
 executables:
   vary-exe:
@@ -68,5 +70,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - vary
-    - either
     - doctest-parallel

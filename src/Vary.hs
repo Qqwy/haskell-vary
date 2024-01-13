@@ -99,10 +99,13 @@ import Vary.Utils
  The first instinct of many Haskell programmers is to write dedicated sum types for these errors like so:
 
 >>> import Data.Bifunctor (first)
->>> data Image = Image -- exercise for the reader!
+>>> data Image = Image
+>>>
 >>> data DownloaderError = IncorrectUrl | ServerUnreachable | DownloadingTimedOut deriving (Eq, Ord, Show)
 >>> data ThumbnailError = NotAnImage | TooBigImage deriving (Eq, Ord, Show)
+>>>
 >>> download = undefined :: String -> Either DownloaderError Image
+>>>
 >>> thumbnail = undefined :: Image -> Either ThumbnailError Image
 
 But if we try to plainly combine these two functions, we get a compiler error:
@@ -132,8 +135,8 @@ This \'works\', although already we can see that we're doing a lot of manual cer
 
 And wait! We wanted to re-try in the case of a `ServerUnreachable` error!
 
+>>> waitAndRetry = undefined :: Word -> (() -> a)  -> a
 >>> :{
-  waitAndRetry = undefined :: Word -> (() -> a)  -> a
   thumbnailService :: String -> Either ThumbnailServiceError Image
   thumbnailService url = 
     case download url of
@@ -153,13 +156,15 @@ We now see:
 - Imagine what happens when using this small function in a bigger system with many more errors!
   Do you keep defining more and more wrapper types for various combinations of errors?
 
-There is a better way!
+==== There is a better way!
 
-With the `Vary` type, you can mix and match individual errors (or other types) at the places they are used.
+With the `Vary` and related `Vary.VEither.VEither` types, you can mix and match individual errors (or other types) at the places they are used.
 
 - No more wrapper type definitions!
 - Handing an error makes it go away from the outcome type!
 
+>>> import Vary.VEither (VEither)
+>>> import qualified Vary.VEither as VEither
 >>> data Image = Image deriving(Show)
 >>>
 >>> data IncorrectUrl = IncorrectUrl deriving (Eq, Ord, Show)
@@ -169,15 +174,16 @@ With the `Vary` type, you can mix and match individual errors (or other types) a
 >>> data NotAnImage = NotAnImage deriving (Eq, Ord, Show)
 >>> data TooBigImage = TooBigImage deriving (Eq, Ord, Show)
 >>>
->>> download = undefined :: (ServerUnreachable :| err, IncorrectUrl :| err) => String -> Either (Vary err) Image
->>> thumbnail = undefined :: (NotAnImage :| err, TooBigImage :| err) => Image -> Either (Vary err) Image
+>>> download = undefined :: (ServerUnreachable :| err, IncorrectUrl :| err) => String -> VEither err Image
+>>> thumbnail = undefined :: (NotAnImage :| err, TooBigImage :| err) => Image -> VEither err Image
 >>>
 >>> waitAndRetry = undefined :: Word -> (() -> a)  -> a
 >>>
 
 Here is the version without the retry:
+
 >>> :{
-thumbnailService :: String -> Either (Vary [ServerUnreachable, IncorrectUrl, NotAnImage, TooBigImage]) Image
+thumbnailService :: String -> VEither [ServerUnreachable, IncorrectUrl, NotAnImage, TooBigImage] Image
 thumbnailService url = do
   image <- download url
   thumb <- thumbnail image
@@ -187,15 +193,11 @@ thumbnailService url = do
 And here is all that needed to change to have a retry:
 
 >>> :{
-thumbnailService :: String -> Either (Vary [ServerUnreachable, IncorrectUrl, NotAnImage, TooBigImage]) Image
-thumbnailService url =
-  case download url of
-    Left err -> 
-      err
-      & (on (\ServerUnreachable -> waitAndRetry 10 (\_ -> thumbnailService url)) Left)
-    Right image -> do
-      thumb <- thumbnail image
-      pure thumb
+thumbnailService :: String -> VEither [IncorrectUrl, NotAnImage, TooBigImage] Image
+thumbnailService url = do
+  image <- download url & VEither.onLeft (\ServerUnreachable -> waitAndRetry 10 (\_ -> thumbnailService url)) id
+  thumb <- thumbnail image
+  pure thumb
 :}
 
 -}
