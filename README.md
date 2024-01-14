@@ -1,4 +1,11 @@
 # Vary: friendly and fast Variant types for Haskell
+[![Hackage](http://img.shields.io/hackage/v/vary.svg)](https://hackage.haskell.org/package/vary)
+[![HackageDocumentation](https://img.shields.io/badge/documentation-available-blue)](https://hackage.haskell.org/package/vary/docs/Vary.html)
+[![test](https://github.com/Qqwy/haskell-vary/actions/workflows/test.yaml/badge.svg?branch=main)](https://github.com/Qqwy/haskell-vary/actions/workflows/test.yaml)
+
+
+[API Documentation](https://hackage.haskell.org/package/vary/docs/Vary.html)
+
 
 Just like tuples are a version of a user-defined product type (only without the field names), a Variant is a version of a user-defined sum type (but without the field names).
 
