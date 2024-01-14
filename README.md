@@ -1,6 +1,33 @@
-# vary
+# Vary: friendly and fast Variant types for Haskell
 
- == Motivating Example
+Just like tuples are a version of a user-defined product type (only without the field names), a Variant is a version of a user-defined sum type (but without the field names).
+
+Variant types are the generalization of `Either`. Especially in the situation where you want to handle multiple errors, Variant types are a great abstraction to use.
+
+Variant types are sometimes called '_polymorphic_ variants' for disambiguation. They are also commonly known as (open) unions, coproducts or extensible sums.
+
+## General Usage
+
+The modules in this library are intended to be used qualified:
+
+```haskell ignore
+import Vary (Vary, (:|))
+import qualified Vary
+
+import Vary.VEither (VEither(VLeft, VRight))
+import qualified Vary.VEither as VEither
+```
+
+The library is intended to be used with the following extensions active:
+
+```haskell top:0
+{-# LANGUAGE GHC2021 #-} -- Of these, Vary uses: TypeApplications, TypeOperators, FlexibleContexts
+{-# LANGUAGE DataKinds #-}
+```
+
+
+
+## Motivating Example
 
  Say we are writing an image thumbnailing service.
 
@@ -107,9 +134,9 @@ We now see:
 With the `Vary` and related `Vary.VEither.VEither` types, you can mix and match individual errors (or other types) at the places they are used.
 
 - No more wrapper type definitions!
-- Handing an error makes it go away from the outcome type!
+- Handing an error makes it disappear from the output type!
 
-```haskell top:1
+```haskell top:2
 import Vary (Vary, (:|))
 import qualified Vary
 import Vary.VEither (VEither(..))
@@ -155,14 +182,56 @@ thumbnailServiceRetry url = do
   pure thumb
 ```
 
+## Why anoher Variant library?
+
+I am aware of the following Haskell libraries offering support for Variant types already:
+
+- [vinyl](https://hackage.haskell.org/package/vinyl)
+- [extensible](https://hackage.haskell.org/package/extensible)
+- [freer](https://hackage.haskell.org/package/freer)
+- [fastsum](https://hackage.haskell.org/package/fastsum)
+- [union](https://hackage.haskell.org/package/union)
+- [open-union](https://hackage.haskell.org/package/open-union)
+- [world-peace](https://hackage.haskell.org/package/world-peace)
+- [haskus-utils-variant](https://hackage.haskell.org/package/haskus-utils-variant)
+
+Vary improves upon them in the following ways:
+
+- Function names in these libraries are long and repetitive, and often seem to be very different from names used elsewhere in `base` or the community.
+  - `Vary` is intended to be used `qualified`, making the function names short and snappy, and allowing re-use of names like `map`, `from`, `on` and `into`.
+- Many libraries define their variant type using a [Higher Kinded Data](https://reasonablypolymorphic.com/blog/higher-kinded-data/) pattern. This is really flexible, but not easy on the eyes.
+  - `Vary`'s type is readable, which is what you want for the common case of using them for error handling.
+  - It also means less manual type signatures are needed :-).
+- Many libraries (exceptions: `fastsum`, `haskus`) define their variant as a GADT-style linked-list-like datatype. The advantage is that you need no `unsafeCoerce` anywhere. The disadvantage is that this has a huge runtime overhead.
+  - `Vary` uses a single (unwrapped, strict) Word for the tag. GHC is able to optimize this representation very well!
+  - Conversion between different variant shapes are also constant-time, as only this tag number needs to change.
+- With the exception of `world-peace` and `haskus`, documentation of the libraries is very sparse.
+  - All of the functions in `Vary` are documented and almost all of them have examples.
+- The libraries try to make their variant be 'everything it can possibly be' and provide not only functions to work with variants by type, but also by index, popping, pushing, concatenating, handling all cases using a tuple of functions, etc. This makes it hard for a newcomer to understand what to use when.
+  - `Vary` intentionally only exposes functions to work _by type_.
+  - There is _one_ way to do case analysis of a `Vary`, namely using `Vary.on`. Only one thing to remember!
+  - Many shape-modification functions were combined inside `Vary.morph`, so you only ever need that one!
+  - Only the most widely-useful functions are provided in `Vary` itself. There are some extra functions in `Vary.Utils` which are intentionally left out of the main module to make it more digestible for new users. 
+- Libraries are already many years old (with no newer updates), and so they are not using any of the newer GHC extensions or inference improvements.
+  - `Vary` makes great use of the `GHC2021` group of extensions, TypeFamilies and the `TypeError` construct to make most type errors disappear and for the few that remain it should be easy to understand how to fix them.
+
+## Acknowledgements
+
+This library stands on the shoulders of giants.
+
+In big part it was inspired by the great Variant abstraction [which exists in PureScript](https://pursuit.purescript.org/packages/purescript-variant/8.0.0) (and related [VEither](https://pursuit.purescript.org/packages/purescript-veither/1.0.5)).
+
+Where PureScript has a leg up over Haskell is in its support of row types. To make the types nice to use in Haskell even lacking row typing support was a puzzle in which the [Effectful](https://github.com/haskell-effectful/effectful) library gave great inspiration (and some type-level trickery was copied essentially verbatim from there.)
+
+Finally, a huge shoutout to the pre-existing Variant libraries in Haskell. Especially to [haskus-utils-variant](https://hackage.haskell.org/package/haskus-utils-variant) and [world-peace](https://hackage.haskell.org/package/world-peace) and the resources found in [this blog post](https://functor.tokyo/blog/2019-07-11-announcing-world-peace) by world-peace's author.
+
+
 <!-- 
 The following is executed by the README test runner,
 but we don't want it to be visible to human readers:
 
-```haskell top:0
+```haskell top:1
 {-# OPTIONS_GHC -fdefer-type-errors #-} -- We want to show some incorrect examples!
-{-# LANGUAGE GHC2021 #-}
-{-# LANGUAGE DataKinds #-}
 module Main where
 
 import Test.Hspec (hspec, describe, it, shouldBe)
@@ -175,20 +244,21 @@ import Data.Function ((&))
 ```haskell
 main :: IO ()
 main = hspec $ do
-  describe "bad v1" $ do
-    it "should not typecheck" $
-      shouldNotTypecheck (thumbnailService1)
-  describe "bad v2" $ do
-    it "should work (but be verbose)" $
-      thumbnailService2 "http://example.com" `shouldBe` (Right Image)
-  describe "bad v2 (wth retry)" $ do
-    it "should work (but be super verbose)" $
-      thumbnailServiceRetry2 "http://example.com" `shouldBe` (Right Image)
-  describe "nice" $ do
-    it "should work nicely" $
-      thumbnailService "http://example.com" `shouldBe` (VRight Image)
-  describe "nice (with retry)" $ do
-    it "should work nicely" $
-      thumbnailServiceRetry "http://example.com" `shouldBe` (VRight Image)
+  describe "motivating example" $ do
+    describe "bad v1" $ do
+      it "should not typecheck" $
+        shouldNotTypecheck (thumbnailService1)
+    describe "bad v2" $ do
+      it "should work (but be verbose)" $
+        thumbnailService2 "http://example.com" `shouldBe` (Right Image)
+    describe "bad v2 (wth retry)" $ do
+      it "should work (but be super verbose)" $
+        thumbnailServiceRetry2 "http://example.com" `shouldBe` (Right Image)
+    describe "nice" $ do
+      it "should work nicely" $
+        thumbnailService "http://example.com" `shouldBe` (VRight Image)
+    describe "nice (with retry)" $ do
+      it "should work nicely" $
+        thumbnailServiceRetry "http://example.com" `shouldBe` (VRight Image)
 ```
 -->

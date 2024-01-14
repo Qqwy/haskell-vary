@@ -78,6 +78,7 @@ tests:
     - -fdefer-type-errors
     - -Wno-unused-matches
     - -Wno-redundant-constraints
+    - -Wno-unused-imports
     build-tools: 
     - markdown-unlit:markdown-unlit
     dependencies:  
