@@ -1,3 +1,3 @@
 module Main where
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = putStrLn "(No separate unit tests yet)"

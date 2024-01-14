@@ -67,7 +67,7 @@ test-suite readme
   main-is: test/README.lhs
   other-modules:
       Paths_vary
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -pgmL markdown-unlit -fdefer-type-errors -Wno-deferred-type-errors -Wno-missing-signatures -Wno-unused-matches -Wno-redundant-constraints -Wno-unused-imports
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -pgmL markdown-unlit -fdefer-type-errors -Wno-deferred-type-errors -Wno-missing-signatures -Wno-unused-matches -Wno-redundant-constraints -Wno-unused-imports -Wno-missing-export-lists
   build-tool-depends:
       markdown-unlit:markdown-unlit
   build-depends:
