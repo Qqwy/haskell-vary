@@ -8,6 +8,8 @@ Variant types are sometimes called '_polymorphic_ variants' for disambiguation. 
 
 ## General Usage
 
+### Setup
+
 The modules in this library are intended to be used qualified:
 
 ```haskell ignore
@@ -25,9 +27,62 @@ The library is intended to be used with the following extensions active:
 {-# LANGUAGE DataKinds #-}
 ```
 
+### Simple usage
 
+You can construct `Vary` using `Vary.from`:
 
-## Motivating Example
+```haskell
+int_or_string :: Bool -> Vary '[Int, String]
+int_or_string bool = 
+    if bool then 
+        Vary.from @Int 42
+    else
+        Vary.from @String "hello world"
+
+-- You can also use the more general type,
+-- which allows you to use a function to insert elements into any variant
+-- that happens to contain the given type(s), 
+-- regardless of order or what other types are in its list:
+int_or_string2 :: (Int :| l, String :| l) => Bool -> Vary l
+int_or_string2 bool = 
+    if bool then 
+        Vary.from @Int 69
+    else
+        Vary.from @String "I like cheese"
+
+```
+
+You can check whether a particular variant is inside and attempt to extract it using `Vary.into`:
+
+```haskell
+maybe_an_int :: Bool -> Maybe Int
+maybe_an_int bool = Vary.into @Int (int_or_string bool)
+```
+
+And you can match the various possibilities using `Vary.on`, together with `Vary.exhaustiveCase` if you've handled all cases:
+
+```haskell
+stringify vary = 
+    vary & 
+        ( Vary.on @String (\string -> "Found a string: " <> show string)
+        $ Vary.on @Int (\int -> "Found an int: " <> show int)
+        $ Vary.exhaustiveCase
+        )
+```
+
+It is generally recommended to keep the type generic at the place you construct a `Vary` (using `Vary.from`), and make the type concrete at the place you use it (for instance when using `Vary.on` or `Vary.into`).
+
+This way, the construction functions can be used in any context, regardless of what other possibilities the caller might want to handle. (See also the 'motivation' example below).
+
+In some cases you already have a concrete `Vary` type, and you want to pass it to or return it from a function expecting another shape (different order of elements, having less or more elements). In those cases, `Vary.morph` will help you out :-).
+
+### VEither
+
+You have now seen `Vary`. There is the closely related type `VEither`. Its runtime representation is the same. The difference between `Vary (a : errs)` and `VEither errs a` is that while `Vary` considers all types in its list of possibilities to be equal, `VEither` considers the `a` to be a 'success' (`VRight`), whereas any of the types in `errs` are considered 'errors' (`VLeft`).
+
+This means that `VEither` can implement `Functor`, `Applicative`, `Monad`, `Foldable`, `Traversable`, `Generic` and a few other fun typeclasses, making it really easy to use for error handling.
+
+## Motivation: Why is 'Vary' useful?
 
  Say we are writing an image thumbnailing service.
 
@@ -42,7 +97,7 @@ The library is intended to be used with the following extensions active:
      * Or even if the downloaded file /is/ an image, it might have a much too high resolution to attempt to read;
 
 
- The first instinct of many Haskell programmers is to write dedicated sum types for these errors like so:
+ The first instinct might be to write dedicated sum types for these errors like so:
 
 ```haskell
 data Image = Image
@@ -75,8 +130,8 @@ But if we try to plainly combine these two functions, we get a compiler error:
 ```haskell
 thumbnailService1 url = do
     image <- download1 url
-    thumbnail <- thumbnail1 image
-    pure thumbnail
+    thumb <- thumbnail1 image
+    pure thumb
 ```
 
 ```
@@ -133,9 +188,6 @@ We now see:
 
 With the `Vary` and related `Vary.VEither.VEither` types, you can mix and match individual errors (or other types) at the places they are used.
 
-- No more wrapper type definitions!
-- Handing an error makes it disappear from the output type!
-
 ```haskell top:2
 import Vary (Vary, (:|))
 import qualified Vary
@@ -181,6 +233,9 @@ thumbnailServiceRetry url = do
   thumb <- thumbnail image
   pure thumb
 ```
+
+- No more wrapper type definitions!
+- Handing an error makes it disappear from the output type!
 
 ## Why anoher Variant library?
 
@@ -244,6 +299,18 @@ import Data.Function ((&))
 ```haskell
 main :: IO ()
 main = hspec $ do
+  describe "simple examples" $ do
+    it "string_or_int" $ do
+      int_or_string True `shouldBe` (Vary.from @Int 42)
+      int_or_string False `shouldBe` (Vary.from @String "hello world")
+    it "maybe_an_int" $ do
+      maybe_an_int True `shouldBe` (Just 42)
+      maybe_an_int False `shouldBe` Nothing
+    it "stringify" $ do
+      stringify (int_or_string2 True) `shouldBe` "Found an int: 69"
+      stringify (int_or_string2 False) `shouldBe` "Found a string: \"I like cheese\""
+
+
   describe "motivating example" $ do
     describe "bad v1" $ do
       it "should not typecheck" $
