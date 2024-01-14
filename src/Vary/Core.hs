@@ -3,7 +3,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
-
 module Vary.Core (Vary (..), pop) where
 
 import Data.Kind (Type)
@@ -16,6 +15,8 @@ import Data.Typeable (Typeable, typeOf)
 -- $setup
 -- >>> :set -XGHC2021
 -- >>> :set -XDataKinds
+-- >>> import Vary (Vary, (:|))
+-- >>> import qualified Vary
 
 -- | Vary, contains one value out of a set of possibilities
 --

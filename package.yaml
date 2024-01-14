@@ -37,8 +37,8 @@ ghc-options:
 
 library:
   source-dirs: src
-  other-modules:
-    - Vary.Core
+  # other-modules:
+  #   - Vary.Core
 
 executables:
   vary-exe:
@@ -71,3 +71,12 @@ tests:
     dependencies:
     - vary
     - doctest-parallel
+  readme:
+    main:        README.lhs
+    ghc-options:
+    - -pgmL markdown-unlit
+    build-tools: 
+    - markdown-unlit:markdown-unlit
+    dependencies:  
+    - vary
+    - markdown-unlit

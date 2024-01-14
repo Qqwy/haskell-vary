@@ -1,7 +1,5 @@
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE DataKinds #-}
-{-# OPTIONS_GHC -ddump-stg-from-core #-}
-
 module Main (main) where
 
 import Control.Exception.Base

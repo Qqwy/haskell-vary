@@ -46,7 +46,6 @@ import Vary.Utils (Subset, Mappable)
 import Vary ((:|))
 import qualified Vary
 import GHC.Generics
-import Data.Bifunctor
 
 -- $setup
 --
@@ -233,16 +232,6 @@ instance Semigroup (VEither errs a) where
   (VRight a) <> _ = (VRight a)
   _ <> b = b
 
--- Conceptually VEither is a Bifunctor,
--- but the kind does not align :-(
--- p has to be Type -> Type -> Type
--- But in the case of VEither it is [Type] -> Type -> Type
---
--- instance Bifunctor VEither where
---   first = mapLeft
---   second = mapRight
---   bimap = veither
-
 -- Look ma! A Hand-written Generic instance!
 instance Generic (VEither errs a) where
   type (Rep (VEither errs a)) =  D1
@@ -261,7 +250,7 @@ instance Generic (VEither errs a) where
                  (Rec0 a)))
 
   from :: VEither errs a -> Rep (VEither errs a) x
-  from ve = -- toEither >>> from >>> unsafeCoerce
+  from ve =
     case ve of
       (VLeft err) -> M1 $ L1 $ M1 $ M1 $ K1 err
       (VRight val) -> M1 $ R1 $ M1 $ M1 $ K1 val
@@ -270,3 +259,14 @@ instance Generic (VEither errs a) where
   to rep = case rep of
     (M1 (L1 (M1 (M1 (K1 err))))) -> (VLeft err)
     (M1 (R1 (M1 (M1 (K1 val))))) -> (VRight val)
+
+
+-- Conceptually VEither is a Bifunctor,
+-- but the kind does not align :-(
+-- p has to be Type -> Type -> Type
+-- But in the case of VEither it is [Type] -> Type -> Type
+--
+-- instance Bifunctor VEither where
+--   first = mapLeft
+--   second = mapRight
+--   bimap = veither
