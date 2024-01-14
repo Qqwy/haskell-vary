@@ -71,7 +71,7 @@ import Vary.Utils
 -- >>> import Vary (Vary, (:|))
 -- >>> import qualified Vary
 --
--- You probably often want to use it together with the "Vary.Either" module:
+-- You probably often want to use it together with the "Vary.VEither" module:
 --
 -- >>> import Vary.VEither (VEither(VLeft, VRight))
 -- >>> import qualified Vary.VEither as VEither
