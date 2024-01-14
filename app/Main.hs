@@ -2,6 +2,12 @@
 {-# LANGUAGE DataKinds #-}
 module Main (main) where
 
+{- 
+This module is a dumping ground for doing some manual tests.
+
+Go nuts ;-)
+-}
+
 import Control.Exception.Base
 import Data.Array.Byte (ByteArray)
 import Data.Function ((&))

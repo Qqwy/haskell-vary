@@ -1,7 +1,5 @@
 {-# LANGUAGE GHC2021 #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
-{-# OPTIONS_GHC -ddump-stg-from-core #-}
-{-# OPTIONS_HADDOCK not-home #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-} -- <- We want a fun long type name with underscores for easier to read errors ;-)
 {-# LANGUAGE DataKinds #-}

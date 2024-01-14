@@ -49,16 +49,16 @@ library:
   other-modules:
     - Vary.Core
 
-executables:
-  vary-exe:
-    main:                Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - vary
+# executables:
+#   vary-exe:
+#     main:                Main.hs
+#     source-dirs:         app
+#     ghc-options:
+#     - -threaded
+#     - -rtsopts
+#     - -with-rtsopts=-N
+#     dependencies:
+#     - vary
 
 tests:
   vary-test:
