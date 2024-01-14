@@ -54,7 +54,7 @@ executables:
 tests:
   vary-test:
     main:                spec.hs
-    source-dirs:         test
+    source-dirs:         test/spec
     ghc-options:
     - -threaded
     - -rtsopts
@@ -63,7 +63,7 @@ tests:
     - vary
   doctests:
     main: doctests.hs
-    source-dirs: test
+    source-dirs: test/doctest
     ghc-options:
     - -threaded
     - -rtsopts
@@ -72,7 +72,7 @@ tests:
     - vary
     - doctest-parallel
   readme:
-    main:        README.lhs
+    main:        test/README.lhs
     ghc-options:
     - -pgmL markdown-unlit
     build-tools: 
