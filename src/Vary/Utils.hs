@@ -7,22 +7,29 @@
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 module Vary.Utils(
+    -- | 
+    -- This module contains functions and typeclasses/type families (type-level functions)
+    -- that are not useful in every day usage,
+    -- but are sometimes _very_ useful in:
+    --
+    -- - highly generic code
+    -- - When you want to implement typeclasses for 'Vary'.
+    -- - When you want to have access to the internals of Vary to debug something
   
-    -- * Useful in generic code
+    -- * Useful in generic code and when implementing typeclasses
     (:|), 
-    KnownPrefix(..), 
-    Length, 
     Subset(..), 
-    Index, 
-    IndexOf, 
-    Mappable, 
+    Mappable,
+    Length, 
+    Index,
+    IndexOf,
     pop,
 
-    -- * Informational
+    -- * Informational (for Debugging)
     size,
     activeIndex,
 
-    -- * Helper
+    -- * Helper functions
     natValue, 
 ) where
 
@@ -67,21 +74,13 @@ activeIndex (Vary idx _) = idx
 
 
 -- | Provide evidence that @xs@ is a subset of @es@.
+--
+-- This is used to make 'Vary.morph' and 'Vary.VEither.morph' work.
 class (KnownPrefix es) => Subset (xs :: [Type]) (es :: [Type]) where
   subsetFullyKnown :: Bool
   subsetFullyKnown =
     -- Don't show "minimal complete definition" in haddock.
     error "subsetFullyKnown"
-
-  -- reifyIndices :: [Int]
-  -- reifyIndices =
-  --   -- Don't show "minimal complete definition" in haddock.
-  --   error "reifyIndices"
-
-  -- reifyIndicesVec :: UVector Int
-  -- reifyIndicesVec =
-  --   -- Don't show "minimal complete definition" in haddock.
-  --   error "reifyIndicesVec"
 
   morph' :: Vary xs -> Vary ys
   morph' =
@@ -100,24 +99,12 @@ instance
   where
   subsetFullyKnown = False
 
--- reifyIndices = []
--- {-# INLINE reifyIndicesVec #-}
--- reifyIndicesVec = UVector.empty
-
 -- If the subset is fully known, we're done.
 instance (KnownPrefix es) => Subset '[] es where
   subsetFullyKnown = True
 
--- reifyIndices = []
--- {-# INLINE reifyIndicesVec #-}
--- reifyIndicesVec = UVector.empty -- UVector.empty
-
 instance (e :| es, Subset xs es) => Subset (e : xs) es where
   subsetFullyKnown = subsetFullyKnown @xs @es
-
-  -- reifyIndices = natValue @(IndexOf e es) : reifyIndices @xs @es
-  -- {-# INLINE reifyIndicesVec #-}
-  -- reifyIndicesVec = UVector.fromList (natValue @(IndexOf e es) : reifyIndices @xs @es) -- UVector.cons (natValue @(IndexOf e es)) (reifyIndicesVec @xs @es)
 
   morph' (Vary 0 a) = Vary (natValue @(IndexOf e es)) a
   morph' (Vary n a) = morph' @xs @es (Vary (n - 1) a)
@@ -125,6 +112,8 @@ instance (e :| es, Subset xs es) => Subset (e : xs) es where
 ----
 
 -- | Calculate length of a statically known prefix of @es@.
+--
+-- Used as part of `Subset`.
 class KnownPrefix (es :: [Type]) where
   prefixLength :: Int
 
@@ -137,13 +126,15 @@ instance {-# INCOHERENT #-} KnownPrefix es where
 ----
 
 -- | Require that @xs@ is the unknown suffix of @es@.
+--
+-- Used as part of `Subset`.
 class (xs :: [k]) `IsUnknownSuffixOf` (es :: [k])
 
 instance {-# INCOHERENT #-} (xs ~ es) => xs `IsUnknownSuffixOf` es
 
 instance (xs `IsUnknownSuffixOf` es) => xs `IsUnknownSuffixOf` (e : es)
 
--- | Get list length
+-- | Type-level function to compute the length of a type-level list
 type family Length (xs :: [k]) :: Nat where
   Length xs = Length' 0 xs
 
@@ -151,6 +142,9 @@ type family Length' n (xs :: [k]) :: Nat where
   Length' n '[] = n
   Length' n (x ': xs) = Length' (n + 1) xs
 
+-- | A slight generalization of 'GHC.TypeLits.natVal' to return arbitrary 'Num'.
+--
+-- (List indexes are never negative, after all.)
 natValue :: forall (n :: Nat) a. (KnownNat n, Num a) => a
 {-# INLINEABLE natValue #-}
 natValue = fromIntegral (natVal (Proxy :: Proxy n))

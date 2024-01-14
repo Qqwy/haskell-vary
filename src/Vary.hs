@@ -72,12 +72,14 @@ import Vary.Utils
 -- >>> import qualified Vary
 --
 -- You probably often want to use it together with the "Vary.Either" module:
--- >>> import Vary.Either (VEither(VLeft, VRight))
+--
+-- >>> import Vary.VEither (VEither(VLeft, VRight))
 -- >>> import qualified Vary.VEither as VEither
 -- 
 -- And for many functions, it is useful (and sometimes outright necessary) to enable the following extensions:
 --
--- >>> :set -XGHC2021 -- Of these, Vary uses: TypeApplications, TypeOperators, FlexibleContexts
+-- >>> -- Of the GHC2021 set, Vary uses: TypeApplications, TypeOperators, FlexibleContexts:
+-- >>> :set -XGHC2021 
 -- >>> :set -XDataKinds
 --
 -- Finally, some example snippets in this module make use of 'Data.Function.&', the left-to-right function application operator.
