@@ -1,10 +1,10 @@
 name:                vary
 version:             0.1.0.0
-github:              "githubuser/vary"
-license:             BSD-3-Clause
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2024 Author name here"
+github:              "qqwy/haskell-vary"
+license:             MIT
+author:              "Marten Wijnja (Qqwy)"
+maintainer:          "qqwy@gmx.com"
+copyright:           "2024 Marten Wijnja (Qqwy)"
 
 extra-source-files:
 - README.md
@@ -17,12 +17,21 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/vary#readme>
+synopsis: Vary: Friendly and fast polymorphic variants (open unions/coproducts/extensible sums)
+description: |         
+  Vary: Friendly and fast Variant types for Haskell
+
+  Just like tuples are a version of a user-defined product type (only without the field names), a Variant is a version of a user-defined sum type (but without the field names).
+
+  Variant types are the generalization of `Either`. Especially in the situation where you want to handle multiple errors, Variant types are a great abstraction to use.
+
+  Variant types are sometimes called '_polymorphic_ variants' for disambiguation. They are also commonly known as (open) unions, coproducts or extensible sums.
+
+  Please see the full README below or on GitHub at <https://github.com/qqwy/haskell-vary#readme>
 
 dependencies:
 - base >= 4.7 && < 5
-- deepseq
-# - vector
+- deepseq >= 1.4.0  && < 1.5
 
 ghc-options:
 - -Wall

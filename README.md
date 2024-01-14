@@ -261,7 +261,7 @@ Vary improves upon them in the following ways:
   - `Vary` uses a single (unwrapped, strict) Word for the tag. GHC is able to optimize this representation very well!
   - Conversion between different variant shapes are also constant-time, as only this tag number needs to change.
 - With the exception of `world-peace` and `haskus`, documentation of the libraries is very sparse.
-  - All of the functions in `Vary` are documented and almost all of them have examples.
+  - All of the functions in `Vary` are documented and almost all of them have examples. ([Doctested](https://github.com/martijnbastiaan/doctest-parallel#readme) by the way!)
 - The libraries try to make their variant be 'everything it can possibly be' and provide not only functions to work with variants by type, but also by index, popping, pushing, concatenating, handling all cases using a tuple of functions, etc. This makes it hard for a newcomer to understand what to use when.
   - `Vary` intentionally only exposes functions to work _by type_.
   - There is _one_ way to do case analysis of a `Vary`, namely using `Vary.on`. Only one thing to remember!
@@ -280,6 +280,9 @@ Where PureScript has a leg up over Haskell is in its support of row types. To ma
 
 Finally, a huge shoutout to the pre-existing Variant libraries in Haskell. Especially to [haskus-utils-variant](https://hackage.haskell.org/package/haskus-utils-variant) and [world-peace](https://hackage.haskell.org/package/world-peace) and the resources found in [this blog post](https://functor.tokyo/blog/2019-07-11-announcing-world-peace) by world-peace's author.
 
+## Is it any good?
+
+Yes ;-)
 
 <!-- 
 The following is executed by the README test runner,
