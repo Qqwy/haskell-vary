@@ -4,6 +4,9 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 module Vary.VEither (
+  -- * General Usage
+  -- $setup
+
   -- * Core type definition
   VEither(VLeft, VRight), 
   -- * Conversion
@@ -28,6 +31,7 @@ module Vary.VEither (
 
   -- * Transforming
   mapLeftOn,
+  mapLeft,
   mapRight,
   morph,
   morphed,
@@ -42,12 +46,9 @@ import Vary.Utils (Subset, Mappable)
 import Vary ((:|))
 import qualified Vary
 import GHC.Generics
-import Unsafe.Coerce
 import Data.Bifunctor
 
 -- $setup
---
--- == General Usage
 --
 -- This module is intended to be used qualified:
 --
@@ -258,7 +259,14 @@ instance Generic (VEither errs a) where
                  (MetaSel
                     Nothing NoSourceUnpackedness NoSourceStrictness DecidedLazy)
                  (Rec0 a)))
+
   from :: VEither errs a -> Rep (VEither errs a) x
-  from = toEither >>> from >>> unsafeCoerce
+  from ve = -- toEither >>> from >>> unsafeCoerce
+    case ve of
+      (VLeft err) -> M1 $ L1 $ M1 $ M1 $ K1 err
+      (VRight val) -> M1 $ R1 $ M1 $ M1 $ K1 val
+
   to :: Rep (VEither errs a) x -> VEither errs a 
-  to = unsafeCoerce >>> to >>> fromEither
+  to rep = case rep of
+    (M1 (L1 (M1 (M1 (K1 err))))) -> (VLeft err)
+    (M1 (R1 (M1 (M1 (K1 val))))) -> (VRight val)
