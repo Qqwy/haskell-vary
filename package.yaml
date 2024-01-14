@@ -75,8 +75,13 @@ tests:
     main:        test/README.lhs
     ghc-options:
     - -pgmL markdown-unlit
+    - -fdefer-type-errors
+    - -Wno-unused-matches
+    - -Wno-redundant-constraints
     build-tools: 
     - markdown-unlit:markdown-unlit
     dependencies:  
     - vary
     - markdown-unlit
+    - hspec
+    - should-not-typecheck
