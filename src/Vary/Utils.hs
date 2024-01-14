@@ -162,7 +162,9 @@ type family Mapped (a :: Type) (b :: Type) (as :: [Type]) = (bs :: [Type]) where
     'Text "Cannot map from " ':<>: 'ShowType a ':<>: 'Text " into " ':<>: 'ShowType b 
     :$$: 'Text "as it cannot be found in the list " ':<>: 'ShowType l)
 
--- | Get the first index of a type
+-- | Look up the index a particular type has in a type-level-list.
+--
+-- This index is what is used to determine the tag value stored in a 'Vary'. 
 type IndexOf (x :: k) (xs :: [k]) = IndexOf' (MaybeIndexOf x xs) x xs
 
 -- | Get the first index of a type
@@ -186,7 +188,11 @@ type family MaybeIndexOf' (n :: Nat) (a :: k) (l :: [k]) where
   MaybeIndexOf' n x (x ': xs) = n + 1
   MaybeIndexOf' n x (y ': xs) = MaybeIndexOf' (n + 1) x xs
 
--- | Indexed access into the list
+-- | Given a type-level index, look up the type at that index.
+--
+-- If you ever see the @Type_List_Too_Vague...@ in a type error,
+-- it means that you need to make the (prefix) of the list of types more concrete
+-- by adding some type annotations somewhere.
 type Index (n :: Nat) (l :: [k]) = Type_List_Too_Vague___Please_Specify_Prefix_Of_List_Including_The_Desired_Type's_Location n l l
 
 -- | We use this ridiculous name
