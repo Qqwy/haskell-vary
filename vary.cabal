@@ -16,6 +16,7 @@ description:    Vary: Friendly and fast Variant types for Haskell
                 Variant types are sometimes called '_polymorphic_ variants' for disambiguation. They are also commonly known as (open) unions, coproducts or extensible sums.
                 .
                 Please see the full README below or on GitHub at <https://github.com/qqwy/haskell-vary#readme>
+category:       Data, Data Structures, Error Handling
 homepage:       https://github.com/qqwy/haskell-vary#readme
 bug-reports:    https://github.com/qqwy/haskell-vary/issues
 author:         Marten Wijnja (Qqwy)
@@ -67,7 +68,7 @@ test-suite readme
   main-is: test/README.lhs
   other-modules:
       Paths_vary
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -pgmL markdown-unlit -fdefer-type-errors -Wno-deferred-type-errors -Wno-missing-signatures -Wno-unused-matches -Wno-redundant-constraints -Wno-unused-imports -Wno-missing-export-lists
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -pgmL markdown-unlit -Wno-deferred-type-errors -Wno-missing-signatures -Wno-unused-matches -Wno-redundant-constraints -Wno-unused-imports -Wno-missing-export-lists
   build-tool-depends:
       markdown-unlit:markdown-unlit
   build-depends:

@@ -85,7 +85,6 @@ tests:
     main:        test/README.lhs
     ghc-options:
     - -pgmL markdown-unlit
-    - -fdefer-type-errors
     - -Wno-deferred-type-errors
     - -Wno-missing-signatures
     - -Wno-unused-matches
