@@ -90,6 +90,7 @@ tests:
     - -Wno-unused-matches
     - -Wno-redundant-constraints
     - -Wno-unused-imports
+    - -Wno-missing-export-lists
     build-tools: 
     - markdown-unlit:markdown-unlit
     dependencies:  
