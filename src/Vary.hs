@@ -407,10 +407,12 @@ type family RepHelper (types :: [Type]) where
 class GenericHelper a where
   type RepH a :: Type -> Type
   fromHelper :: a -> RepH a x
+  toHelper :: RepH a x -> a
 
 instance GenericHelper (Vary '[]) where
   type RepH (Vary '[]) = GHC.Generics.V1
   fromHelper vary = exhaustiveCase vary
+  toHelper liftedVoid = case liftedVoid of {}
 
 instance GenericHelper (Vary as) => GenericHelper (Vary (a : as)) where
   type RepH (Vary (a : as)) = 
@@ -423,6 +425,10 @@ instance GenericHelper (Vary as) => GenericHelper (Vary (a : as)) where
     case pop vary of
       Right a -> L1 $ M1 $ K1 a
       Left rest -> R1 $ fromHelper rest
+  
+  toHelper gvary = case gvary of
+    L1 (M1 (K1 inner)) -> Vary.from inner
+    R1 rest -> Vary.morph (toHelper rest)
 
 instance GenericHelper (Vary '[]) => GHC.Generics.Generic (Vary '[]) where
   type Rep (Vary '[]) = 
@@ -430,7 +436,7 @@ instance GenericHelper (Vary '[]) => GHC.Generics.Generic (Vary '[]) where
     (GHC.Generics.MetaData "Vary"  "Vary"  "vary" False) 
     (RepH (Vary '[]))
   from vary = M1 $ fromHelper vary
-  to val = case val of {}
+  to (M1 val) = toHelper val
 
 instance GenericHelper (Vary xs) => GHC.Generics.Generic (Vary (x : xs)) where
   type Rep (Vary (x : xs)) = 
@@ -439,3 +445,4 @@ instance GenericHelper (Vary xs) => GHC.Generics.Generic (Vary (x : xs)) where
     (RepH (Vary (x : xs)))
   
   from vary = M1 $ fromHelper vary
+  to (M1 gvary) = toHelper gvary
