@@ -103,6 +103,7 @@ This means that `VEither` can implement `Functor`, `Applicative`, `Monad`, `Fold
      * This can fail, because the downloaded file might turn out actually not to be a valid image file (PNG or JPG);
      * Or even if the downloaded file /is/ an image, it might have a much too high resolution to attempt to read;
 
+_(NOTE: For simplicity, we pretend everything is a pure function rather than using IO or some more fancy effect stack in the examples below.)_
 
  The first instinct might be to write dedicated sum types for these errors like so:
 
