@@ -236,10 +236,11 @@ And here is all that needed to change to have a retry:
 ```haskell
 thumbnailServiceRetry :: String -> VEither [IncorrectUrl2, NotAnImage2, TooBigImage2] Image
 thumbnailServiceRetry url = do
-  image <- download url 
-           & VEither.onLeft (\ServerUnreachable2 -> waitAndRetry 10 (\_ -> thumbnailServiceRetry url)) id
+  image <- VEither.handle @ServerUnreachable2 retry $ download url
   thumb <- thumbnail image
   pure thumb
+  where
+    retry _err = waitAndRetry 10 (\_ -> thumbnailServiceRetry url)
 ```
 
 - No more wrapper type definitions!
