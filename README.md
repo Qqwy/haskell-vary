@@ -276,6 +276,8 @@ Vary improves upon them in the following ways:
   - Only the most widely-useful functions are provided in `Vary` itself. There are some extra functions in `Vary.Utils` which are intentionally left out of the main module to make it more digestible for new users. 
 - Libraries are already many years old (with no newer updates), and so they are not using any of the newer GHC extensions or inference improvements.
   - `Vary` makes great use of the `GHC2021` group of extensions, TypeFamilies and the `TypeError` construct to make most type errors disappear and for the few that remain it should be easy to understand how to fix them.
+- None of the libraries make an attempt to work well with Haskell's exception mechanisms.
+  - `Vary` [has excellent support to be thrown and caught as exceptions](https://hackage.haskell.org/package/vary/docs/Vary.html#vary_and_exceptions).
 
 ## Acknowledgements
 
