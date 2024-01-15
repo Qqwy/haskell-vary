@@ -62,8 +62,6 @@ import GHC.TypeLits
 import Unsafe.Coerce (unsafeCoerce)
 import Vary.Core (Vary (..))
 import Vary.Utils
-import qualified GHC.Generics
-import GHC.Generics hiding (from)
 
 -- $setup
 --
@@ -395,54 +393,3 @@ mapOn fun vary@(Vary tag val) =
     Just a -> from @b (fun a)
     Nothing -> (Vary tag val)
 
-type family RepHelper (types :: [Type]) where
-  RepHelper '[] = GHC.Generics.V1
-  RepHelper (x : xs) = 
-      (GHC.Generics.S1
-        (GHC.Generics.MetaSel Nothing GHC.Generics.NoSourceUnpackedness GHC.Generics.NoSourceStrictness GHC.Generics.DecidedLazy)
-        (GHC.Generics.Rec0 x))
-    GHC.Generics.:+:
-      (RepHelper xs)
-
-class GenericHelper a where
-  type RepH a :: Type -> Type
-  fromHelper :: a -> RepH a x
-  toHelper :: RepH a x -> a
-
-instance GenericHelper (Vary '[]) where
-  type RepH (Vary '[]) = GHC.Generics.V1
-  fromHelper vary = exhaustiveCase vary
-  toHelper liftedVoid = case liftedVoid of {}
-
-instance GenericHelper (Vary as) => GenericHelper (Vary (a : as)) where
-  type RepH (Vary (a : as)) = 
-      (GHC.Generics.S1
-        (GHC.Generics.MetaSel Nothing GHC.Generics.NoSourceUnpackedness GHC.Generics.NoSourceStrictness GHC.Generics.DecidedLazy)
-        (GHC.Generics.Rec0 a))
-    :+:
-      (RepH (Vary as))
-  fromHelper vary = 
-    case pop vary of
-      Right a -> L1 $ M1 $ K1 a
-      Left rest -> R1 $ fromHelper rest
-  
-  toHelper gvary = case gvary of
-    L1 (M1 (K1 inner)) -> Vary.from inner
-    R1 rest -> Vary.morph (toHelper rest)
-
-instance GenericHelper (Vary '[]) => GHC.Generics.Generic (Vary '[]) where
-  type Rep (Vary '[]) = 
-    GHC.Generics.D1 
-    (GHC.Generics.MetaData "Vary"  "Vary"  "vary" False) 
-    (RepH (Vary '[]))
-  from vary = M1 $ fromHelper vary
-  to (M1 val) = toHelper val
-
-instance GenericHelper (Vary xs) => GHC.Generics.Generic (Vary (x : xs)) where
-  type Rep (Vary (x : xs)) = 
-    GHC.Generics.D1 
-    (GHC.Generics.MetaData "Vary"  "Vary"  "vary" False) 
-    (RepH (Vary (x : xs)))
-  
-  from vary = M1 $ fromHelper vary
-  to (M1 gvary) = toHelper gvary

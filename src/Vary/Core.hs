@@ -3,6 +3,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE TypeFamilies #-}
 module Vary.Core (Vary (..), pop) where
 
 import Data.Kind (Type)
@@ -11,6 +12,7 @@ import qualified Unsafe.Coerce as Data.Coerce
 import Control.DeepSeq (NFData (..))
 import Control.Exception (Exception(..))
 import Data.Typeable (Typeable, typeOf)
+import GHC.Generics
 
 -- $setup
 -- >>> :set -XGHC2021
@@ -134,3 +136,57 @@ instance (Exception e, Exception (Vary errs), Typeable errs) => Exception (Vary 
             Nothing -> case fromException @(Vary errs) some_exception of
                 Just (Vary tag err) -> Just (Data.Coerce.unsafeCoerce (Vary (tag+1) err))
                 Nothing -> Nothing
+
+
+-- Behold! A manually-written Generic instance!
+--
+-- This instance is very similar to the one for tuples (), (,), (,,), ...
+-- but with each occurrence of :*: replaced by :+:
+
+class GenericHelper a where
+  type RepHelper a :: Type -> Type
+  fromHelper :: a -> RepHelper a x
+  toHelper :: RepHelper a x -> a
+
+instance GenericHelper (Vary '[]) where
+  type RepHelper (Vary '[]) = V1
+  fromHelper = emptyVaryError "GenericHelper.fromHelper"
+  toHelper liftedVoid = case liftedVoid of {}
+
+instance GenericHelper (Vary as) => GenericHelper (Vary (a : as)) where
+  type RepHelper (Vary (a : as)) = 
+      (S1
+        (MetaSel Nothing NoSourceUnpackedness NoSourceStrictness DecidedLazy)
+        (Rec0 a))
+    :+:
+      (RepHelper (Vary as))
+  fromHelper vary = 
+    case pop vary of
+      Right a -> L1 $ M1 $ K1 a
+      Left rest -> R1 $ fromHelper rest
+  
+  toHelper gvary = case gvary of
+    L1 (M1 (K1 inner)) -> (Vary 0 (Data.Coerce.unsafeCoerce inner))
+    R1 grest -> 
+        let (Vary tag val) = toHelper @(Vary as) grest 
+        in (Vary (tag+1) val)
+
+instance GenericHelper (Vary '[]) => Generic (Vary '[]) where
+  type Rep (Vary '[]) = 
+    D1 
+    (MetaData "Vary"  "Vary"  "vary" False) 
+    (C1
+        (MetaCons "from" PrefixI False)
+        (RepHelper (Vary '[])))
+  from vary = M1 $ M1 $ fromHelper vary
+  to (M1 (M1 val)) = toHelper val
+
+instance GenericHelper (Vary xs) => Generic (Vary (x : xs)) where
+  type Rep (Vary (x : xs)) = 
+    D1 
+    (MetaData "Vary"  "Vary"  "vary" False) 
+    (C1
+        (MetaCons "from" PrefixI False)
+        (RepHelper (Vary (x : xs))))
+  from vary = M1 $ M1 $ fromHelper vary
+  to (M1 (M1 (gvary))) = toHelper gvary
