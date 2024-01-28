@@ -101,10 +101,10 @@ instance Show (Vary '[]) where
 instance (Typeable a, Show a, Show (Vary as)) => Show (Vary (a : as)) where
     showsPrec d vary = case pop vary of
         Right val ->
-            showString "Vary.from " . 
-            showString "@" . 
-            showsPrec (d+10) (typeOf val) . 
-            showString " " . 
+            showString "Vary.from " .
+            showString "@" .
+            showsPrec (d+10) (typeOf val) .
+            showString " " .
             showsPrec (d+11) val
         Left other -> showsPrec d other
 
@@ -120,17 +120,17 @@ instance (Typeable (Vary '[]), Show (Vary '[])) => Exception (Vary '[]) where
 
 -- | See [Vary and Exceptions](#vary_and_exceptions) for more info.
 instance (Exception e, Exception (Vary errs), Typeable errs) => Exception (Vary (e : errs)) where
-    displayException vary = 
+    displayException vary =
         case pop vary of
             Right val -> displayException val
             Left rest -> displayException rest
 
-    toException vary = 
+    toException vary =
         case pop vary of
             Right val -> toException val
             Left rest -> toException rest
-    
-    fromException some_exception = 
+
+    fromException some_exception =
         case fromException @e some_exception of
             Just e -> Just (Vary 0 (Data.Coerce.unsafeCoerce e))
             Nothing -> case fromException @(Vary errs) some_exception of
@@ -154,27 +154,27 @@ instance GenericHelper (Vary '[]) where
   toHelper liftedVoid = case liftedVoid of {}
 
 instance GenericHelper (Vary as) => GenericHelper (Vary (a : as)) where
-  type RepHelper (Vary (a : as)) = 
-      (S1
+  type RepHelper (Vary (a : as)) =
+      S1
         (MetaSel Nothing NoSourceUnpackedness NoSourceStrictness DecidedLazy)
-        (Rec0 a))
+        (Rec0 a)
     :+:
-      (RepHelper (Vary as))
-  fromHelper vary = 
+      RepHelper (Vary as)
+  fromHelper vary =
     case pop vary of
       Right a -> L1 $ M1 $ K1 a
       Left rest -> R1 $ fromHelper rest
-  
-  toHelper gvary = case gvary of
-    L1 (M1 (K1 inner)) -> (Vary 0 (Data.Coerce.unsafeCoerce inner))
-    R1 grest -> 
-        let (Vary tag val) = toHelper @(Vary as) grest 
-        in (Vary (tag+1) val)
 
-instance GenericHelper (Vary '[]) => Generic (Vary '[]) where
-  type Rep (Vary '[]) = 
-    D1 
-    (MetaData "Vary"  "Vary"  "vary" False) 
+  toHelper gvary = case gvary of
+    L1 (M1 (K1 inner)) -> Vary 0 (Data.Coerce.unsafeCoerce inner)
+    R1 grest ->
+        let (Vary tag val) = toHelper @(Vary as) grest
+        in Vary (tag+1) val
+
+instance Generic (Vary '[]) where
+  type Rep (Vary '[]) =
+    D1
+    (MetaData "Vary"  "Vary"  "vary" False)
     (C1
         (MetaCons "from" PrefixI False)
         (RepHelper (Vary '[])))
@@ -182,11 +182,11 @@ instance GenericHelper (Vary '[]) => Generic (Vary '[]) where
   to (M1 (M1 val)) = toHelper val
 
 instance GenericHelper (Vary xs) => Generic (Vary (x : xs)) where
-  type Rep (Vary (x : xs)) = 
-    D1 
-    (MetaData "Vary"  "Vary"  "vary" False) 
+  type Rep (Vary (x : xs)) =
+    D1
+    (MetaData "Vary"  "Vary"  "vary" False)
     (C1
         (MetaCons "from" PrefixI False)
         (RepHelper (Vary (x : xs))))
   from vary = M1 $ M1 $ fromHelper vary
-  to (M1 (M1 (gvary))) = toHelper gvary
+  to (M1 (M1 gvary)) = toHelper gvary
