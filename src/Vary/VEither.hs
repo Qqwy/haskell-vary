@@ -28,6 +28,7 @@ module Vary.VEither (
   -- similar to "Vary".'Vary.on' and co.
   onLeft,
   onRight,
+  handle,
 
   -- * Transforming
   mapLeftOn,
@@ -58,15 +59,24 @@ import GHC.Generics
 --
 -- >>> :set -XGHC2021
 -- >>> :set -XDataKinds
+--
+-- Finally, some example snippets in this module make use of 'Data.Function.&', the left-to-right function application operator.
+--
+-- >>> import Data.Function ((&))
+
 
 newtype VEither (errs :: [Type]) a = VEither (Vary (a : errs))
 
 -- | Turns the 'VEither' into a normal Vary, no longer considering the @a@ a \'preferred\' value.
+--
+-- In many cases, you probably want to mattern match on "VEither".'VLeft' instead!
 toVary :: VEither errs a -> Vary (a : errs)
 {-# INLINE toVary #-}
 toVary (VEither vary) = vary
 
 -- | Turns a 'Vary' into a 'VEither'. Now the @a@ is considered the \'preferred\' value.
+--
+-- In many cases, you probably want to use "VEither".'VLeft' instead!
 fromVary :: Vary (a : errs) -> VEither errs a
 {-# INLINE fromVary #-}
 fromVary vary = VEither vary
@@ -93,56 +103,97 @@ fromEither = Data.Either.either Vary.morph Vary.from >>> fromVary
 -- >>> VEither.fromLeft @Bool True :: VEither '[Bool] String
 -- VLeft (Vary.from @Bool True) 
 fromLeft :: forall err errs a. err :| errs => err -> VEither errs a
+{-# INLINE fromLeft #-}
 fromLeft = Vary.from @err >>> VLeft
 
 -- | Construct a 'VEither' from an @a@.
 --
 -- Exists for symmetry with 'fromLeft'.
--- Indeed, this is just another name for 'VRight'.
+-- Indeed, this is just another name for 'VRight' (and for 'pure').
 fromRight :: forall a errs. a -> VEither errs a
+{-# INLINE fromRight #-}
 fromRight = VRight
 
 -- | Case analysis on a 'VEither'. Similar to 'Data.Either.either'.
 --
 -- See also "VEither".'mapLeft', "VEither".'mapLeftOn' and "VEither".'mapRight'.
 veither :: (Vary errs -> c) -> (a -> c) -> VEither errs a -> c
+{-# INLINE veither #-}
 veither f _ (VLeft x)     =  f x
 veither _ g (VRight y)    =  g y
 
 {-# COMPLETE VLeft, VRight #-}
 
+-- Matches when the VEither contains one of the errors, returning @Vary errs@
 pattern VLeft :: forall a errs. Vary errs -> VEither errs a
 {-# INLINE VLeft #-}
 pattern VLeft errs <- (toEither -> Left errs)
    where
       VLeft (Vary tag err) = VEither ((Vary (tag+1) err))
 
+-- | Matches when the VEither contains the preferred value of type @a@.
 pattern VRight :: forall a errs. a -> VEither errs a
 {-# INLINE VRight #-}
 pattern VRight a <- (toEither -> Right a)
   where
     VRight a = VEither (Vary.from @a a)
 
+-- | Handle a particular error possibility.
+--
+-- Works very similarly to "Vary".'Vary.on'.
 onLeft :: forall err b errs a. (err -> b) -> (VEither errs a -> b) -> VEither (err : errs) a -> b
+{-# INLINE onLeft #-}
 onLeft thiserrFun restfun ve = case ve of
   VLeft e -> Vary.on @err thiserrFun (\otherErr -> restfun (VLeft otherErr)) e
   VRight a -> restfun (VRight a)
 
+-- | Handle the success posibility.
+--
+--
+-- Works very similarly to "Vary".'Vary.on'.
+-- Usually used together with "VError".'onLeft'.
 onRight :: (a -> b) -> (VEither errs a -> b) -> VEither errs a -> b
+{-# INLINE onRight #-}
 onRight valfun restfun ve = case ve of
   VRight a -> valfun a
   VLeft err -> restfun (VLeft err)
+
+-- | Handle a single error, by mapping it either to the success type @a@ or to one of the other errors in @errs@.
+--
+-- This is syntactic sugar over using "VEither".'onLeft',
+-- but can be nicer to use if one or only a few error variants need to be handled,
+-- because it lets you build a simple pipeline:
+--
+-- >>> :{
+--  examplePipe ve = ve
+--    & VEither.handle @Int (pure . show) 
+--    & VEither.handle @Bool (pure . show)
+-- :}
+--
+-- >>> :t examplePipe
+-- examplePipe 
+--   :: VEither (Int : Bool : errs) String -> VEither errs String
+-- >>> examplePipe (VEither.fromLeft False :: VEither '[Int, Bool, Float] String)
+-- VRight "False"
+handle :: (err -> VEither errs a) -> VEither (err : errs) a -> VEither errs a
+{-# INLINE handle #-}
+handle fun = onLeft fun id
 
 -- | If you have a VEither which does not actually contain any errors,
 -- you can be sure it always contains an @a@.
 --
 -- Similar to "Vary".'Vary.intoOnly'.
 intoOnly :: forall a. VEither '[] a -> a
+{-# INLINE intoOnly #-}
 intoOnly (VRight a) = a
 intoOnly (VLeft emptyVary) = Vary.exhaustiveCase emptyVary
 
 
+-- | Extend a smaller `VEiher` into a bigger one, change the order of its error types, or get rid of duplicate error types.
+--
+-- Similar to "Vary".'Vary.morph'
 morph :: forall ys xs a. Subset (a : xs) (a : ys) => VEither xs a -> VEither ys a
+{-# INLINE morph #-}
 morph = toVary >>> Vary.morph >>> fromVary
 
 -- | Execute a function expecting a larger (or differently-ordered) variant
@@ -158,6 +209,7 @@ morphed fun = fun . morph
 --
 -- Similar to "Vary".'Vary.mapOn'.
 mapLeftOn :: forall x y xs ys a. (Mappable x y xs ys) => (x -> y) -> VEither xs a -> VEither ys a
+{-# INLINE mapLeftOn #-}
 mapLeftOn _ (VRight val) = VRight val
 mapLeftOn fun (VLeft err) = VLeft $ Vary.mapOn fun err
 
@@ -166,6 +218,7 @@ mapLeftOn fun (VLeft err) = VLeft $ Vary.mapOn fun err
 -- See also "VEither".'mapLeftOn', "VEither".'mapRight' and "VEither".'veither'.
 --
 mapLeft :: (Vary xs -> Vary ys) -> VEither xs a -> VEither ys a
+{-# INLINE mapLeft #-}
 mapLeft fun ve = case ve of 
     VRight a -> VRight a
     VLeft errs -> VLeft (fun errs)
@@ -178,6 +231,7 @@ mapLeft fun ve = case ve of
 --
 -- See also "VEither".'veither'.
 mapRight :: (x -> y) -> VEither errs x -> VEither errs y
+{-# INLINE mapRight #-}
 mapRight fun ve = case ve of 
     VRight a -> VRight (fun a)
     VLeft errs -> VLeft errs
@@ -232,7 +286,10 @@ instance Semigroup (VEither errs a) where
   (VRight a) <> _ = (VRight a)
   _ <> b = b
 
--- Look ma! A Hand-written Generic instance!
+-- Look! A hand-written Generic instance! ;-)
+--
+-- This closely follows the implementation of the normal Either,
+-- and pretends the type truly is built up of VLeft and VRight
 instance Generic (VEither errs a) where
   type (Rep (VEither errs a)) =  D1
        (MetaData "VEither" "Vary.VEither" "vary" False)

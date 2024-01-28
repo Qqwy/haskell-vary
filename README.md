@@ -103,6 +103,7 @@ This means that `VEither` can implement `Functor`, `Applicative`, `Monad`, `Fold
      * This can fail, because the downloaded file might turn out actually not to be a valid image file (PNG or JPG);
      * Or even if the downloaded file /is/ an image, it might have a much too high resolution to attempt to read;
 
+_(NOTE: For simplicity, we pretend everything is a pure function rather than using IO or some more fancy effect stack in the examples below.)_
 
  The first instinct might be to write dedicated sum types for these errors like so:
 
@@ -235,10 +236,11 @@ And here is all that needed to change to have a retry:
 ```haskell
 thumbnailServiceRetry :: String -> VEither [IncorrectUrl2, NotAnImage2, TooBigImage2] Image
 thumbnailServiceRetry url = do
-  image <- download url 
-           & VEither.onLeft (\ServerUnreachable2 -> waitAndRetry 10 (\_ -> thumbnailServiceRetry url)) id
+  image <- VEither.handle @ServerUnreachable2 retry $ download url
   thumb <- thumbnail image
   pure thumb
+  where
+    retry _err = waitAndRetry 10 (\_ -> thumbnailServiceRetry url)
 ```
 
 - No more wrapper type definitions!
@@ -276,6 +278,8 @@ Vary improves upon them in the following ways:
   - Only the most widely-useful functions are provided in `Vary` itself. There are some extra functions in `Vary.Utils` which are intentionally left out of the main module to make it more digestible for new users. 
 - Libraries are already many years old (with no newer updates), and so they are not using any of the newer GHC extensions or inference improvements.
   - `Vary` makes great use of the `GHC2021` group of extensions, TypeFamilies and the `TypeError` construct to make most type errors disappear and for the few that remain it should be easy to understand how to fix them.
+- None of the libraries make an attempt to work well with Haskell's exception mechanisms.
+  - `Vary` [has excellent support to be thrown and caught as exceptions](https://hackage.haskell.org/package/vary/docs/Vary.html#vary_and_exceptions).
 
 ## Acknowledgements
 
