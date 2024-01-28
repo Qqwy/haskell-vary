@@ -4,7 +4,8 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE TypeFamilies #-}
-module Vary.Core (Vary (..), pop) where
+{-# LANGUAGE DeriveAnyClass #-}
+module Vary.Core (Vary (..), pop, Error1(..), Error2(..), Error3(..)) where
 
 import Data.Kind (Type)
 import GHC.Exts (Any)
@@ -13,6 +14,9 @@ import Control.DeepSeq (NFData (..))
 import Control.Exception (Exception(..))
 import Data.Typeable (Typeable, typeOf)
 import GHC.Generics
+import qualified Data.Aeson as Aeson
+import Control.Applicative ((<|>))
+import Data.Function ((&))
 
 -- $setup
 -- >>> :set -XGHC2021
@@ -69,7 +73,15 @@ emptyVaryError name = error (name <> " was called on empty Vary '[]")
 pop :: Vary (a : as) -> Either (Vary as) a
 {-# INLINE pop #-}
 pop (Vary 0 val) = Right (Data.Coerce.unsafeCoerce val)
-pop (Vary tag val) = Left (Data.Coerce.unsafeCoerce (Vary (tag - 1) val))
+pop (Vary tag inner) = Left (Vary (tag - 1) inner)
+
+pushHead :: a -> Vary (a : as)
+{-# INLINE pushHead #-}
+pushHead val = Vary 0 (Data.Coerce.unsafeCoerce val)
+
+{-# INLINE pushTail #-}
+pushTail :: Vary as -> Vary (a : as)
+pushTail (Vary tag inner) = Vary (tag + 1) inner
 
 instance Eq (Vary '[]) where
   (==) = emptyVaryError "Eq.(==)"
@@ -121,20 +133,17 @@ instance (Typeable (Vary '[]), Show (Vary '[])) => Exception (Vary '[]) where
 -- | See [Vary and Exceptions](#vary_and_exceptions) for more info.
 instance (Exception e, Exception (Vary errs), Typeable errs) => Exception (Vary (e : errs)) where
     displayException vary =
-        case pop vary of
-            Right val -> displayException val
-            Left rest -> displayException rest
+      either displayException displayException (pop vary)
 
     toException vary =
-        case pop vary of
-            Right val -> toException val
-            Left rest -> toException rest
+      either toException toException (pop vary)
 
     fromException some_exception =
         case fromException @e some_exception of
-            Just e -> Just (Vary 0 (Data.Coerce.unsafeCoerce e))
-            Nothing -> case fromException @(Vary errs) some_exception of
-                Just (Vary tag err) -> Just (Data.Coerce.unsafeCoerce (Vary (tag+1) err))
+            Just e -> Just (pushHead e)
+            Nothing -> 
+              case fromException @(Vary errs) some_exception of
+                Just vary -> Just (pushTail vary)
                 Nothing -> Nothing
 
 
@@ -150,7 +159,10 @@ class GenericHelper a where
 
 instance GenericHelper (Vary '[]) where
   type RepHelper (Vary '[]) = V1
+
+  {-# INLINE fromHelper #-}
   fromHelper = emptyVaryError "GenericHelper.fromHelper"
+  {-# INLINE toHelper #-}
   toHelper liftedVoid = case liftedVoid of {}
 
 instance GenericHelper (Vary as) => GenericHelper (Vary (a : as)) where
@@ -160,16 +172,21 @@ instance GenericHelper (Vary as) => GenericHelper (Vary (a : as)) where
         (Rec0 a)
     :+:
       RepHelper (Vary as)
+
+  {-# INLINE fromHelper #-}
   fromHelper vary =
     case pop vary of
       Right a -> L1 $ M1 $ K1 a
       Left rest -> R1 $ fromHelper rest
 
+  {-# INLINE toHelper #-}
   toHelper gvary = case gvary of
-    L1 (M1 (K1 inner)) -> Vary 0 (Data.Coerce.unsafeCoerce inner)
+    L1 (M1 (K1 inner)) -> 
+      pushHead inner
     R1 grest ->
-        let (Vary tag val) = toHelper @(Vary as) grest
-        in Vary (tag+1) val
+      grest 
+      & toHelper @(Vary as) 
+      & pushTail
 
 instance Generic (Vary '[]) where
   type Rep (Vary '[]) =
@@ -178,7 +195,11 @@ instance Generic (Vary '[]) where
     (C1
         (MetaCons "from" PrefixI False)
         (RepHelper (Vary '[])))
+
+  {-# INLINE from #-}
   from vary = M1 $ M1 $ fromHelper vary
+
+  {-# INLINE to #-}
   to (M1 (M1 val)) = toHelper val
 
 instance GenericHelper (Vary xs) => Generic (Vary (x : xs)) where
@@ -188,5 +209,31 @@ instance GenericHelper (Vary xs) => Generic (Vary (x : xs)) where
     (C1
         (MetaCons "from" PrefixI False)
         (RepHelper (Vary (x : xs))))
+  {-# INLINE from #-}
   from vary = M1 $ M1 $ fromHelper vary
+
+  {-# INLINE to #-}
   to (M1 (M1 gvary)) = toHelper gvary
+
+instance Aeson.FromJSON (Vary '[]) where
+  {-# INLINE parseJSON #-}
+  parseJSON _ = fail "Cannot parse Vary []"
+
+instance (Aeson.FromJSON a, Aeson.FromJSON (Vary as)) => Aeson.FromJSON (Vary (a : as)) where
+  {-# INLINE parseJSON #-}
+  parseJSON value = (pushHead <$> Aeson.parseJSON) <|> (pushTail <$> Aeson.parseJSON)
+
+instance Aeson.ToJSON (Vary '[]) where
+  {-# INLINE toEncoding #-}
+  toEncoding = emptyVaryError "ToJSON.toEncoding"
+  {-# INLINE toJSON #-}
+  toJSON = emptyVaryError "ToJSON.toJSON"
+
+instance (Aeson.ToJSON a, Aeson.ToJSON (Vary as)) => Aeson.ToJSON (Vary (a : as)) where
+  {-# INLINE toEncoding #-}
+  toEncoding vary =
+    either Aeson.toEncoding Aeson.toEncoding (pop vary)
+  
+  {-# INLINE toJSON #-}
+  toJSON vary = 
+    either Aeson.toJSON Aeson.toJSON (pop vary)
