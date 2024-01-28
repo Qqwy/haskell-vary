@@ -9,7 +9,18 @@
 
 Just like tuples are a version of a user-defined product type (only without the field names), a Variant is a version of a user-defined sum type (but without the field names).
 
-Variant types are the generalization of `Either`. Especially in the situation where you want to handle multiple errors, Variant types are a great abstraction to use.
+In other words: Variant types are the generalization of `Either` to more (or less) than two alternatives. 
+
+| Product:     | Sum:                     |
+|--------------|--------------------------|
+| ()           | Vary [] / Void           |
+| Solo a       | Vary [a]                 |
+| (a, b)       | Vary [a, b] / Either a b |
+| (a, b, c)    | Vary [a, b, c]           |
+| (a, b, c, d) | Vary [a, b, c, d]        |
+| (...)        | Vary [...]               |
+
+Especially when doing error handling (both in pure code and in exception-heavy code), Variant types are a great abstraction to use.
 
 Variant types are sometimes called '_polymorphic_ variants' for disambiguation. They are also commonly known as (open) unions, coproducts or extensible sums.
 
