@@ -34,15 +34,15 @@ flags:
   aeson: 
     description: "When enabled implements the @FromJSON@/@ToJSON@ typeclasses from the aeson library. When disabled, does not depend on the aeson library."
     default: true
-    manual: false
+    manual: true
   hashable:
     description: "When enabled implements the @Hashable@ typeclass from the hashable library. When disabled, does not depend on the @hashable@ library."
     default: true
-    manual: false
+    manual: true
   quickcheck: 
     description: "When enabled implements the @Arbitrary@ typeclasses from the QuickCheck library. When disabled, does not depend on the QuickCheck library."
     default: true
-    manual: false
+    manual: true
 
 
 dependencies:
@@ -52,19 +52,19 @@ dependencies:
 when:
   condition: flag(hashable)
   dependencies:
-  - hashable
+  - hashable >= 1.3.0 && < 1.5
   cpp-options: -DFLAG_HASHABLE
 
 when:
   condition: flag(aeson)
   dependencies:
-  - aeson
+  - aeson >= 2.0.0 && < 2.3
   cpp-options: -DFLAG_AESON
 
 when:
   condition: flag(quickcheck)
   dependencies:
-  - QuickCheck
+  - QuickCheck >= 2.12 && < 2.15
   cpp-options: -DFLAG_QUICKCHECK
 
 ghc-options:
