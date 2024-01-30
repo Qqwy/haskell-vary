@@ -31,7 +31,6 @@ import Test.QuickCheck
 import Test.QuickCheck.Arbitrary (GSubterms, RecursivelyShrink)
 # endif
 
-
 -- $setup
 -- >>> :set -XGHC2021
 -- >>> :set -XDataKinds
@@ -250,7 +249,6 @@ instance (Aeson.ToJSON a, Aeson.ToJSON (Vary (b : bs))) => Aeson.ToJSON (Vary (a
   toEncoding vary =
     either Aeson.toEncoding Aeson.toEncoding (pop vary)
 # endif
-
 
 # ifdef FLAG_QUICKCHECK
 instance (Test.QuickCheck.Arbitrary a) => Test.QuickCheck.Arbitrary (Vary '[a]) where
