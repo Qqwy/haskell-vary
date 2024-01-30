@@ -3,6 +3,8 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE UndecidableInstances #-}
 module Vary.VEither (
   -- * General Usage
   -- $setup
@@ -47,6 +49,18 @@ import Vary.Utils (Subset, Mappable)
 import Vary ((:|))
 import qualified Vary
 import GHC.Generics
+
+# ifdef FLAG_AESON
+import Data.Aeson qualified as Aeson
+# endif
+
+# ifdef FLAG_HASHABLE
+import Data.Hashable
+# endif
+
+# ifdef FLAG_QUICKCHECK
+import Test.QuickCheck
+# endif
 
 -- $setup
 --
@@ -314,8 +328,8 @@ instance Generic (VEither errs a) where
 
   to :: Rep (VEither errs a) x -> VEither errs a 
   to rep = case rep of
-    (M1 (L1 (M1 (M1 (K1 err))))) -> (VLeft err)
-    (M1 (R1 (M1 (M1 (K1 val))))) -> (VRight val)
+    (M1 (L1 (M1 (M1 (K1 err))))) -> VLeft err
+    (M1 (R1 (M1 (M1 (K1 val))))) -> VRight val
 
 
 -- Conceptually VEither is a Bifunctor,
@@ -327,3 +341,16 @@ instance Generic (VEither errs a) where
 --   first = mapLeft
 --   second = mapRight
 --   bimap = veither
+
+#ifdef FLAG_HASHABLE 
+instance (Hashable a, Hashable (Vary errs), (Eq (VEither errs a))) => Hashable (VEither errs a)
+#endif
+
+#ifdef FLAG_AESON 
+deriving instance Aeson.ToJSON (Vary (a : errs)) => Aeson.ToJSON (VEither errs a)
+deriving instance Aeson.FromJSON (Vary (a : errs)) => Aeson.FromJSON (VEither errs a)
+#endif
+
+#ifdef FLAG_QUICKCHECK
+deriving instance (Arbitrary (Vary (a : errs))) => Test.QuickCheck.Arbitrary (VEither errs a)
+#endif
