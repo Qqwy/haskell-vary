@@ -5,9 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        aeson: ["", "--flag=vary:aeson"]
-        hashable: ["", "--flag=vary:hashable"]
-        quichckeck: ["", "--flag=vary:quickcheck"]
+        flags: ["--flag=vary:-aeson", "--flag=vary:-hashable", "--flag=vary:-quickcheck"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v3
@@ -15,7 +13,7 @@ jobs:
           path: |
             ~/.stack
             .stack-work
-          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock', 'package.yaml') }}
+          key: ${{ runner.os }}-stack-withflags-${{ matrix.flags }}-${{ hashFiles('stack.yaml.lock', 'package.yaml') }}
           restore-keys: |
             ${{ runner.os }}-stack-
       - name: Restore cached dependencies
@@ -23,12 +21,12 @@ jobs:
         id: cache
         with:
             path: ~/.stack
-            key: ${{ runner.os }}-stack-${{ hashFiles('**/*.cabal') }}
+            key: ${{ runner.os }}-stack-withflags-${{ matrix.flags }}-${{ hashFiles('**/*.cabal') }}
       - uses: haskell-actions/setup@v2
         with:
           ghc-version: '9.6.3' # Exact version of ghc to use
           # cabal-version: 'latest'. Omitted, but defaults to 'latest'
           enable-stack: true
           stack-version: 'latest'
-      - run: stack build ${{ matrix.aeson }} ${{ matrix.hashable }} ${{ matrix.quickcheck }}
+      - run: stack build ${{ matrix.flags }}
 
