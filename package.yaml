@@ -30,12 +30,42 @@ description: |
 
   Please see the full README below or on GitHub at <https://github.com/qqwy/haskell-vary#readme>
 
+flags:
+  aeson: 
+    description: "When enabled implements the @FromJSON@/@ToJSON@ typeclasses from the aeson library. When disabled, does not depend on the aeson library."
+    default: true
+    manual: false
+  hashable:
+    description: "When enabled implements the @Hashable@ typeclass from the hashable library. When disabled, does not depend on the @hashable@ library."
+    default: true
+    manual: false
+  quickcheck: 
+    description: "When enabled implements the @Arbitrary@ typeclasses from the QuickCheck library. When disabled, does not depend on the QuickCheck library."
+    default: true
+    manual: false
+
+
 dependencies:
 - base >= 4.7 && < 5
 - deepseq >= 1.4.0  && < 1.5
-- aeson
-- QuickCheck
-- hashable
+
+when:
+  condition: flag(hashable)
+  dependencies:
+  - hashable
+  cpp-options: -DFLAG_HASHABLE
+
+when:
+  condition: flag(aeson)
+  dependencies:
+  - aeson
+  cpp-options: -DFLAG_AESON
+
+when:
+  condition: flag(quickcheck)
+  dependencies:
+  - QuickCheck
+  cpp-options: -DFLAG_QUICKCHECK
 
 ghc-options:
 - -Wall

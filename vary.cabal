@@ -33,6 +33,21 @@ source-repository head
   type: git
   location: https://github.com/qqwy/haskell-vary
 
+flag aeson
+  description: When enabled implements the @FromJSON@/@ToJSON@ typeclasses from the aeson library. When disabled, does not depend on the aeson library.
+  manual: False
+  default: True
+
+flag hashable
+  description: When enabled implements the @Hashable@ typeclass from the hashable library. When disabled, does not depend on the @hashable@ library.
+  manual: False
+  default: True
+
+flag quickcheck
+  description: When enabled implements the @Arbitrary@ typeclasses from the QuickCheck library. When disabled, does not depend on the QuickCheck library.
+  manual: False
+  default: True
+
 library
   exposed-modules:
       Vary
@@ -44,12 +59,13 @@ library
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      QuickCheck
-    , aeson
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , deepseq >=1.4.0 && <1.5
-    , hashable
   default-language: Haskell2010
+  if flag(quickcheck)
+    cpp-options: -DFLAG_QUICKCHECK
+    build-depends:
+        QuickCheck
 
 test-suite doctests
   type: exitcode-stdio-1.0
@@ -60,14 +76,15 @@ test-suite doctests
       test/doctest
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      QuickCheck
-    , aeson
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , deepseq >=1.4.0 && <1.5
     , doctest-parallel
-    , hashable
     , vary
   default-language: Haskell2010
+  if flag(quickcheck)
+    cpp-options: -DFLAG_QUICKCHECK
+    build-depends:
+        QuickCheck
 
 test-suite readme
   type: exitcode-stdio-1.0
@@ -78,16 +95,17 @@ test-suite readme
   build-tool-depends:
       markdown-unlit:markdown-unlit
   build-depends:
-      QuickCheck
-    , aeson
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , deepseq >=1.4.0 && <1.5
-    , hashable
     , hspec
     , markdown-unlit
     , should-not-typecheck
     , vary
   default-language: Haskell2010
+  if flag(quickcheck)
+    cpp-options: -DFLAG_QUICKCHECK
+    build-depends:
+        QuickCheck
 
 test-suite vary-test
   type: exitcode-stdio-1.0
@@ -98,10 +116,11 @@ test-suite vary-test
       test/spec
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      QuickCheck
-    , aeson
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , deepseq >=1.4.0 && <1.5
-    , hashable
     , vary
   default-language: Haskell2010
+  if flag(quickcheck)
+    cpp-options: -DFLAG_QUICKCHECK
+    build-depends:
+        QuickCheck

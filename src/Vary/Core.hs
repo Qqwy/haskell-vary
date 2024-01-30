@@ -1,4 +1,5 @@
 {-# LANGUAGE GHC2021 #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -10,16 +11,26 @@ module Vary.Core (Vary (..), pop) where
 import Control.Applicative ((<|>))
 import Control.DeepSeq (NFData (..))
 import Control.Exception (Exception (..))
-import Data.Aeson qualified as Aeson
-import Data.Hashable
-import Data.Hashable.Generic (GHashable, Zero)
 import Data.Kind (Type)
 import Data.Typeable (Typeable, typeOf)
 import GHC.Exts (Any)
 import GHC.Generics
+import Unsafe.Coerce qualified as Data.Coerce
+
+# ifdef FLAG_AESON
+import Data.Aeson qualified as Aeson
+# endif
+
+# ifdef FLAG_HASHABLE
+import Data.Hashable
+import Data.Hashable.Generic (GHashable, Zero)
+# endif
+
+# ifdef FLAG_QUICKCHECK
 import Test.QuickCheck
 import Test.QuickCheck.Arbitrary (GSubterms, RecursivelyShrink)
-import Unsafe.Coerce qualified as Data.Coerce
+# endif
+
 
 -- $setup
 -- >>> :set -XGHC2021
@@ -217,11 +228,13 @@ instance (GenericHelper (a : as)) => Generic (Vary (a : as)) where
   from vary = M1 $ M1 $ fromHelper vary
   to (M1 (M1 gval)) = toHelper gval
 
+# ifdef FLAG_AESON
 deriving instance Aeson.FromJSON (Vary '[])
 
 deriving instance (Aeson.FromJSON a) => Aeson.FromJSON (Vary '[a])
 
 instance (Aeson.FromJSON a, Aeson.FromJSON (Vary (b : bs))) => Aeson.FromJSON (Vary (a : b : bs)) where
+  {-# INLINE parseJSON #-}
   parseJSON val = (pushHead <$> Aeson.parseJSON val) <|> (pushTail <$> Aeson.parseJSON val)
 
 deriving instance Aeson.ToJSON (Vary '[])
@@ -229,12 +242,17 @@ deriving instance Aeson.ToJSON (Vary '[])
 deriving instance (Aeson.ToJSON a) => Aeson.ToJSON (Vary '[a])
 
 instance (Aeson.ToJSON a, Aeson.ToJSON (Vary (b : bs))) => Aeson.ToJSON (Vary (a : b : bs)) where
+  {-# INLINE toJSON #-}
   toJSON vary =
     either Aeson.toJSON Aeson.toJSON (pop vary)
 
+  {-# INLINE toEncoding #-}
   toEncoding vary =
     either Aeson.toEncoding Aeson.toEncoding (pop vary)
+# endif
 
+
+# ifdef FLAG_QUICKCHECK
 instance (Test.QuickCheck.Arbitrary a) => Test.QuickCheck.Arbitrary (Vary '[a]) where
   arbitrary = pushHead <$> arbitrary
   shrink = genericShrink
@@ -250,16 +268,20 @@ instance
   where
   arbitrary = oneof [pushHead <$> arbitrary, pushTail <$> arbitrary]
   shrink = genericShrink
+# endif
 
+#ifdef FLAG_HASHABLE
 class FastHashable a where
   badHashWithSalt :: Int -> a -> Int
 
 instance (Hashable a) => FastHashable (Vary '[a]) where
+  {-# INLINE badHashWithSalt #-}
   badHashWithSalt salt vary = case pop vary of
     Right val -> hashWithSalt salt val
     Left empty -> emptyVaryError "hashWithSalt" empty
 
 instance (Hashable a, FastHashable (Vary (b : bs))) => FastHashable (Vary (a : b : bs)) where
+  {-# INLINE badHashWithSalt #-}
   badHashWithSalt salt vary = case pop vary of
     Right val -> hashWithSalt salt val
     Left rest -> badHashWithSalt salt rest
@@ -272,3 +294,4 @@ instance
   where
   hashWithSalt salt vary@(Vary tag _inner) = fromIntegral tag `hashWithSalt` badHashWithSalt salt vary
   hash vary@(Vary tag _inner) = badHashWithSalt (fromIntegral tag) vary
+#endif
