@@ -24,6 +24,8 @@ Especially when doing error handling (both in pure code and in exception-heavy c
 
 Variant types are sometimes called '_polymorphic_ variants' for disambiguation. They are also commonly known as (open) unions, coproducts or extensible sums.
 
+Vary is lightweight on dependencies. With all library flags turned off, it only depends on `base` and `deepseq`.
+
 ## General Usage
 
 ### Setup

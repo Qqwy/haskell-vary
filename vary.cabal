@@ -15,6 +15,8 @@ description:    Vary: Friendly and fast Variant types for Haskell
                 .
                 Variant types are sometimes called '_polymorphic_ variants' for disambiguation. They are also commonly known as (open) unions, coproducts or extensible sums.
                 .
+                Vary is lightweight on dependencies. With all library flags turned off, it only depends on `base` and `deepseq`.
+                .
                 Please see the full README below or on GitHub at <https://github.com/qqwy/haskell-vary#readme>
 category:       Data, Data Structures, Error Handling
 homepage:       https://github.com/qqwy/haskell-vary#readme
@@ -35,17 +37,17 @@ source-repository head
 
 flag aeson
   description: When enabled implements the @FromJSON@/@ToJSON@ typeclasses from the aeson library. When disabled, does not depend on the aeson library.
-  manual: False
+  manual: True
   default: True
 
 flag hashable
   description: When enabled implements the @Hashable@ typeclass from the hashable library. When disabled, does not depend on the @hashable@ library.
-  manual: False
+  manual: True
   default: True
 
 flag quickcheck
   description: When enabled implements the @Arbitrary@ typeclasses from the QuickCheck library. When disabled, does not depend on the QuickCheck library.
-  manual: False
+  manual: True
   default: True
 
 library
@@ -65,7 +67,7 @@ library
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck
+        QuickCheck >=2.12 && <2.15
 
 test-suite doctests
   type: exitcode-stdio-1.0
@@ -84,7 +86,7 @@ test-suite doctests
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck
+        QuickCheck >=2.12 && <2.15
 
 test-suite readme
   type: exitcode-stdio-1.0
@@ -105,7 +107,7 @@ test-suite readme
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck
+        QuickCheck >=2.12 && <2.15
 
 test-suite vary-test
   type: exitcode-stdio-1.0
@@ -123,4 +125,4 @@ test-suite vary-test
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck
+        QuickCheck >=2.12 && <2.15
