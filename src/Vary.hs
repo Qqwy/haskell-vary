@@ -20,6 +20,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoStarIsType #-}
+{-# LANGUAGE EmptyCase #-}
 
 module Vary
   ( -- * General Usage
@@ -364,7 +365,7 @@ morphed fun = fun . morph
 --   & Vary.intoOnly              -- String
 -- :}
 -- "True"
---
+
 -- Note that if you end up handling all cases of a variant, you might prefer using `Vary.on` and `Vary.exhaustiveCase` instead.
 --
 -- == Generic code
@@ -391,3 +392,4 @@ mapOn fun vary@(Vary tag val) =
   case into @a vary of
     Just a -> from @b (fun a)
     Nothing -> (Vary tag val)
+

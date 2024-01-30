@@ -1,16 +1,35 @@
 {-# LANGUAGE GHC2021 #-}
-{-# OPTIONS_HADDOCK not-home #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE MonoLocalBinds #-}
+{-# OPTIONS_HADDOCK not-home #-}
+
 module Vary.Core (Vary (..), pop) where
 
-import Data.Kind (Type)
-import GHC.Exts (Any)
-import qualified Unsafe.Coerce as Data.Coerce
+import Control.Applicative ((<|>))
 import Control.DeepSeq (NFData (..))
-import Control.Exception (Exception(..))
+import Control.Exception (Exception (..))
+import Data.Kind (Type)
 import Data.Typeable (Typeable, typeOf)
+import GHC.Exts (Any)
+import GHC.Generics
+import Unsafe.Coerce qualified as Data.Coerce
+
+# ifdef FLAG_AESON
+import Data.Aeson qualified as Aeson
+# endif
+
+# ifdef FLAG_HASHABLE
+import Data.Hashable
+import Data.Hashable.Generic (GHashable, Zero)
+# endif
+
+# ifdef FLAG_QUICKCHECK
+import Test.QuickCheck
+import Test.QuickCheck.Arbitrary (GSubterms, RecursivelyShrink)
+# endif
 
 -- $setup
 -- >>> :set -XGHC2021
@@ -40,7 +59,6 @@ data Vary (possibilities :: [Type]) = Vary {-# UNPACK #-} !Word Any
 emptyVaryError :: forall anything. String -> Vary '[] -> anything
 emptyVaryError name = error (name <> " was called on empty Vary '[]")
 
-
 -- | Attempts to extract a value of the first type from the `Vary`.
 --
 -- If this failed, we know it has to be one of the other possibilities.
@@ -60,31 +78,39 @@ emptyVaryError name = error (name <> " was called on empty Vary '[]")
 -- >        Right val -> "Vary.from " <> show val
 -- >        Left other -> show other
 --
--- To go the other way: 
+-- To go the other way:
 --
 -- - Use "Vary".`Vary.morph` to turn @Vary as@ back into @Vary (a : as)@
 -- - Use "Vary".`Vary.from` to turn @a@ back into @Vary (a : as)@
 pop :: Vary (a : as) -> Either (Vary as) a
 {-# INLINE pop #-}
 pop (Vary 0 val) = Right (Data.Coerce.unsafeCoerce val)
-pop (Vary tag val) = Left (Data.Coerce.unsafeCoerce (Vary (tag - 1) val))
+pop (Vary tag inner) = Left (Vary (tag - 1) inner)
+
+pushHead :: a -> Vary (a : as)
+{-# INLINE pushHead #-}
+pushHead val = Vary 0 (Data.Coerce.unsafeCoerce val)
+
+{-# INLINE pushTail #-}
+pushTail :: Vary as -> Vary (a : as)
+pushTail (Vary tag inner) = Vary (tag + 1) inner
 
 instance Eq (Vary '[]) where
   (==) = emptyVaryError "Eq.(==)"
 
 instance (Eq a, Eq (Vary as)) => Eq (Vary (a : as)) where
-    {-# INLINE (==) #-}
-    a == b = pop a == pop b
+  {-# INLINE (==) #-}
+  a == b = pop a == pop b
 
 instance Ord (Vary '[]) where
-    compare = emptyVaryError "Ord.compare"
+  compare = emptyVaryError "Ord.compare"
 
 instance (Ord a, Ord (Vary as)) => Ord (Vary (a : as)) where
-    {-# INLINE compare #-}
-    l `compare` r = pop l `compare` pop r
+  {-# INLINE compare #-}
+  l `compare` r = pop l `compare` pop r
 
 instance Show (Vary '[]) where
-    show = emptyVaryError "Show.show"
+  show = emptyVaryError "Show.show"
 
 -- | `Vary`'s 'Show' instance only works for types which are 'Typeable'
 --
@@ -97,40 +123,173 @@ instance Show (Vary '[]) where
 -- >>> Vary.from @(Maybe Int) (Just 1234) :: Vary '[Maybe Int, Bool]
 -- Vary.from @(Maybe Int) (Just 1234)
 instance (Typeable a, Show a, Show (Vary as)) => Show (Vary (a : as)) where
-    showsPrec d vary = case pop vary of
-        Right val ->
-            showString "Vary.from " . 
-            showString "@" . 
-            showsPrec (d+10) (typeOf val) . 
-            showString " " . 
-            showsPrec (d+11) val
-        Left other -> showsPrec d other
+  showsPrec d vary = case pop vary of
+    Right val ->
+      showString "Vary.from "
+        . showString "@"
+        . showsPrec (d + 10) (typeOf val)
+        . showString " "
+        . showsPrec (d + 11) val
+    Left other -> showsPrec d other
 
 instance NFData (Vary '[]) where
-    rnf = emptyVaryError "NFData.rnf"
+  rnf = emptyVaryError "NFData.rnf"
 
 instance (NFData a, NFData (Vary as)) => NFData (Vary (a : as)) where
-    {-# INLINE rnf #-}
-    rnf vary = rnf (pop vary)
+  {-# INLINE rnf #-}
+  rnf vary = rnf (pop vary)
 
-
-instance (Typeable (Vary '[]), Show (Vary '[])) => Exception (Vary '[]) where
+instance (Typeable (Vary '[]), Show (Vary '[])) => Exception (Vary '[])
 
 -- | See [Vary and Exceptions](#vary_and_exceptions) for more info.
 instance (Exception e, Exception (Vary errs), Typeable errs) => Exception (Vary (e : errs)) where
-    displayException vary = 
-        case pop vary of
-            Right val -> displayException val
-            Left rest -> displayException rest
+  displayException vary =
+    either displayException displayException (pop vary)
 
-    toException vary = 
-        case pop vary of
-            Right val -> toException val
-            Left rest -> toException rest
-    
-    fromException some_exception = 
-        case fromException @e some_exception of
-            Just e -> Just (Vary 0 (Data.Coerce.unsafeCoerce e))
-            Nothing -> case fromException @(Vary errs) some_exception of
-                Just (Vary tag err) -> Just (Data.Coerce.unsafeCoerce (Vary (tag+1) err))
-                Nothing -> Nothing
+  toException vary =
+    either toException toException (pop vary)
+
+  fromException ex =
+    (pushHead <$> fromException @e ex) <|> (pushTail <$> fromException @(Vary errs) ex)
+
+-- case fromException @e some_exception of
+--     Just e -> Just (pushHead e)
+--     Nothing ->
+--       case fromException @(Vary errs) some_exception of
+--         Just vary -> Just (pushTail vary)
+--         Nothing -> Nothing
+
+-- Behold! A manually-written Generic instance!
+--
+-- This instance is very similar to the one for tuples (), (,), (,,), ...
+-- but with each occurrence of :*: replaced by :+:
+-- (and using `V1` instead of `U1` for the empty Vary)
+type family RepHelper (list :: [Type]) :: Type -> Type where
+  RepHelper '[] = V1
+  RepHelper '[a] =
+    S1
+      ( MetaSel
+          Nothing
+          NoSourceUnpackedness
+          NoSourceStrictness
+          DecidedLazy
+      )
+      (K1 R a)
+  RepHelper (a : b : bs) =
+    S1
+      (MetaSel Nothing NoSourceUnpackedness NoSourceStrictness DecidedLazy)
+      (Rec0 a)
+      :+: RepHelper (b : bs)
+
+class GenericHelper (list :: [Type]) where
+  fromHelper :: Vary list -> (RepHelper list) x
+  toHelper :: (RepHelper list) x -> Vary list
+
+instance GenericHelper '[] where
+  fromHelper = emptyVaryError "Generic.from"
+  toHelper void = case void of {}
+
+instance GenericHelper '[a] where
+  fromHelper vary = case pop vary of
+    Right val -> M1 $ K1 $ val
+    Left empty -> emptyVaryError "Generic.from" empty
+
+  toHelper (M1 (K1 val)) = pushHead val
+
+instance (GenericHelper (b : bs)) => GenericHelper (a : b : bs) where
+  fromHelper vary = case pop vary of
+    Right val -> L1 $ M1 $ K1 $ val
+    Left rest -> R1 $ fromHelper rest
+
+  toHelper (L1 (M1 (K1 val))) = pushHead val
+  toHelper (R1 rest) = pushTail (toHelper rest)
+
+-- | Vary '[] 's generic representation is `V1`.
+instance Generic (Vary '[]) where
+  type
+    Rep (Vary '[]) =
+      D1
+        (MetaData "Vary" "Vary" "vary" False)
+        (RepHelper '[])
+  from = emptyVaryError "Generic.from"
+  to void = case void of {}
+
+-- | Any non-empty Vary's generic representation is encoded similar to a tuple but with `:+:` instead of `:*:`.
+instance (GenericHelper (a : as)) => Generic (Vary (a : as)) where
+  type
+    Rep (Vary (a : as)) =
+      D1
+        (MetaData "Vary" "Vary" "vary" False)
+        ( C1
+            (MetaCons "from" PrefixI False)
+            (RepHelper (a : as))
+        )
+  from vary = M1 $ M1 $ fromHelper vary
+  to (M1 (M1 gval)) = toHelper gval
+
+# ifdef FLAG_AESON
+deriving instance Aeson.FromJSON (Vary '[])
+
+deriving instance (Aeson.FromJSON a) => Aeson.FromJSON (Vary '[a])
+
+instance (Aeson.FromJSON a, Aeson.FromJSON (Vary (b : bs))) => Aeson.FromJSON (Vary (a : b : bs)) where
+  {-# INLINE parseJSON #-}
+  parseJSON val = (pushHead <$> Aeson.parseJSON val) <|> (pushTail <$> Aeson.parseJSON val)
+
+deriving instance Aeson.ToJSON (Vary '[])
+
+deriving instance (Aeson.ToJSON a) => Aeson.ToJSON (Vary '[a])
+
+instance (Aeson.ToJSON a, Aeson.ToJSON (Vary (b : bs))) => Aeson.ToJSON (Vary (a : b : bs)) where
+  {-# INLINE toJSON #-}
+  toJSON vary =
+    either Aeson.toJSON Aeson.toJSON (pop vary)
+
+  {-# INLINE toEncoding #-}
+  toEncoding vary =
+    either Aeson.toEncoding Aeson.toEncoding (pop vary)
+# endif
+
+# ifdef FLAG_QUICKCHECK
+instance (Test.QuickCheck.Arbitrary a) => Test.QuickCheck.Arbitrary (Vary '[a]) where
+  arbitrary = pushHead <$> arbitrary
+  shrink = genericShrink
+
+instance
+  ( Arbitrary a,
+    Arbitrary (Vary (b : bs)),
+    Generic (Vary (a : b : bs)),
+    RecursivelyShrink (Rep (Vary (a : b : bs))),
+    GSubterms (Rep (Vary (a : b : bs))) (Vary (a : b : bs))
+  ) =>
+  Test.QuickCheck.Arbitrary (Vary (a : b : bs))
+  where
+  arbitrary = oneof [pushHead <$> arbitrary, pushTail <$> arbitrary]
+  shrink = genericShrink
+# endif
+
+#ifdef FLAG_HASHABLE
+class FastHashable a where
+  badHashWithSalt :: Int -> a -> Int
+
+instance (Hashable a) => FastHashable (Vary '[a]) where
+  {-# INLINE badHashWithSalt #-}
+  badHashWithSalt salt vary = case pop vary of
+    Right val -> hashWithSalt salt val
+    Left empty -> emptyVaryError "hashWithSalt" empty
+
+instance (Hashable a, FastHashable (Vary (b : bs))) => FastHashable (Vary (a : b : bs)) where
+  {-# INLINE badHashWithSalt #-}
+  badHashWithSalt salt vary = case pop vary of
+    Right val -> hashWithSalt salt val
+    Left rest -> badHashWithSalt salt rest
+
+instance
+  ( Eq (Vary (a : as)),
+    FastHashable (Vary (a : as))
+  ) =>
+  Hashable (Vary (a : as))
+  where
+  hashWithSalt salt vary@(Vary tag _inner) = fromIntegral tag `hashWithSalt` badHashWithSalt salt vary
+  hash vary@(Vary tag _inner) = badHashWithSalt (fromIntegral tag) vary
+#endif

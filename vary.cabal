@@ -33,6 +33,21 @@ source-repository head
   type: git
   location: https://github.com/qqwy/haskell-vary
 
+flag aeson
+  description: When enabled implements the @FromJSON@/@ToJSON@ typeclasses from the aeson library. When disabled, does not depend on the aeson library.
+  manual: False
+  default: True
+
+flag hashable
+  description: When enabled implements the @Hashable@ typeclass from the hashable library. When disabled, does not depend on the @hashable@ library.
+  manual: False
+  default: True
+
+flag quickcheck
+  description: When enabled implements the @Arbitrary@ typeclasses from the QuickCheck library. When disabled, does not depend on the QuickCheck library.
+  manual: False
+  default: True
+
 library
   exposed-modules:
       Vary
@@ -47,6 +62,10 @@ library
       base >=4.7 && <5
     , deepseq >=1.4.0 && <1.5
   default-language: Haskell2010
+  if flag(quickcheck)
+    cpp-options: -DFLAG_QUICKCHECK
+    build-depends:
+        QuickCheck
 
 test-suite doctests
   type: exitcode-stdio-1.0
@@ -62,6 +81,10 @@ test-suite doctests
     , doctest-parallel
     , vary
   default-language: Haskell2010
+  if flag(quickcheck)
+    cpp-options: -DFLAG_QUICKCHECK
+    build-depends:
+        QuickCheck
 
 test-suite readme
   type: exitcode-stdio-1.0
@@ -79,6 +102,10 @@ test-suite readme
     , should-not-typecheck
     , vary
   default-language: Haskell2010
+  if flag(quickcheck)
+    cpp-options: -DFLAG_QUICKCHECK
+    build-depends:
+        QuickCheck
 
 test-suite vary-test
   type: exitcode-stdio-1.0
@@ -93,3 +120,7 @@ test-suite vary-test
     , deepseq >=1.4.0 && <1.5
     , vary
   default-language: Haskell2010
+  if flag(quickcheck)
+    cpp-options: -DFLAG_QUICKCHECK
+    build-depends:
+        QuickCheck
