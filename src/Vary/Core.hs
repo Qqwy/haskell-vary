@@ -31,6 +31,10 @@ import Test.QuickCheck
 import Test.QuickCheck.Arbitrary (GSubterms, RecursivelyShrink)
 # endif
 
+# ifdef FLAG_CEREAL
+import Data.Serialize qualified as Cereal
+# endif
+
 -- $setup
 -- >>> :set -XGHC2021
 -- >>> :set -XDataKinds
@@ -292,4 +296,36 @@ instance
   where
   hashWithSalt salt vary@(Vary tag _inner) = fromIntegral tag `hashWithSalt` badHashWithSalt salt vary
   hash vary@(Vary tag _inner) = badHashWithSalt (fromIntegral tag) vary
+#endif
+
+#ifdef FLAG_CEREAL
+class SerializeHelper a where
+  cerealPut :: a -> Cereal.Put
+  cerealGet :: Word -> Cereal.Get a
+
+instance SerializeHelper (Vary '[]) where
+  cerealPut = emptyVaryError "cerealPut"
+  cerealGet = emptyVaryError "cerealGet" undefined
+
+instance
+  ( Cereal.Serialize a
+  , SerializeHelper (Vary as)
+  ) =>
+  SerializeHelper (Vary (a : as))
+  where
+  cerealPut vary = case pop vary of
+    Right val -> Cereal.put val
+    Left val -> cerealPut val
+  cerealGet 0 = Vary 0 . Data.Coerce.unsafeCoerce <$> Cereal.get @a
+  cerealGet n = pushTail <$> cerealGet @(Vary as) (n - 1)
+
+instance (SerializeHelper (Vary as)) => Cereal.Serialize (Vary as) where
+  {-# INLINE put #-}
+  put vary@(Vary n _) = do
+    Cereal.putWord64le (fromIntegral n)
+    cerealPut vary
+  {-# INLINE get #-}
+  get = do
+    tag <- Cereal.getWord64le
+    cerealGet (fromIntegral tag)
 #endif

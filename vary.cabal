@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -40,6 +40,11 @@ flag aeson
   manual: True
   default: True
 
+flag cereal
+  description: When enabled implements the @Serialize@ typeclass from the cereal library. When disabled, does not depend on the cereal library.
+  manual: True
+  default: True
+
 flag hashable
   description: When enabled implements the @Hashable@ typeclass from the hashable library. When disabled, does not depend on the @hashable@ library.
   manual: True
@@ -72,6 +77,10 @@ library
     cpp-options: -DFLAG_AESON
     build-depends:
         aeson >=2.0.0 && <2.3
+  if flag(cereal)
+    cpp-options: -DFLAG_CEREAL
+    build-depends:
+        cereal
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
@@ -99,6 +108,10 @@ test-suite doctests
     cpp-options: -DFLAG_AESON
     build-depends:
         aeson >=2.0.0 && <2.3
+  if flag(cereal)
+    cpp-options: -DFLAG_CEREAL
+    build-depends:
+        cereal
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
@@ -128,6 +141,10 @@ test-suite readme
     cpp-options: -DFLAG_AESON
     build-depends:
         aeson >=2.0.0 && <2.3
+  if flag(cereal)
+    cpp-options: -DFLAG_CEREAL
+    build-depends:
+        cereal
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
@@ -154,6 +171,10 @@ test-suite vary-test
     cpp-options: -DFLAG_AESON
     build-depends:
         aeson >=2.0.0 && <2.3
+  if flag(cereal)
+    cpp-options: -DFLAG_CEREAL
+    build-depends:
+        cereal
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:

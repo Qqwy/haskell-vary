@@ -62,6 +62,10 @@ import Data.Hashable
 import Test.QuickCheck
 # endif
 
+# ifdef FLAG_CEREAL
+import Data.Serialize qualified as Cereal
+# endif
+
 -- $setup
 --
 -- This module is intended to be used qualified:
@@ -353,4 +357,8 @@ deriving instance Aeson.FromJSON (Vary (a : errs)) => Aeson.FromJSON (VEither er
 
 #ifdef FLAG_QUICKCHECK
 deriving instance (Arbitrary (Vary (a : errs))) => Test.QuickCheck.Arbitrary (VEither errs a)
+#endif
+
+#ifdef FLAG_CEREAL
+deriving instance (Cereal.Serialize (Vary (a : errs))) => Cereal.Serialize (VEither errs a)
 #endif
