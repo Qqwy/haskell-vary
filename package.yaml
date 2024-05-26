@@ -118,6 +118,12 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - vary
+    - hspec
+    - QuickCheck >= 2.12 && < 2.15
+    - aeson >= 2.0.0 && < 2.3
+    - binary
+    - bytestring
+    - cereal
   doctests:
     main: doctests.hs
     source-dirs: test/doctest

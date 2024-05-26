@@ -176,8 +176,14 @@ test-suite vary-test
       test/spec
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      QuickCheck >=2.12 && <2.15
+    , aeson >=2.0.0 && <2.3
+    , base >=4.7 && <5
+    , binary
+    , bytestring
+    , cereal
     , deepseq >=1.4.0 && <1.5
+    , hspec
     , vary
   default-language: Haskell2010
   if flag(hashable)
