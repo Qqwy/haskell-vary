@@ -40,6 +40,11 @@ flag aeson
   manual: True
   default: True
 
+flag binary
+  description: When enabled implements the @Binary@ typeclass from the binary library. When disabled, does not depend on the binary library.
+  manual: True
+  default: True
+
 flag cereal
   description: When enabled implements the @Serialize@ typeclass from the cereal library. When disabled, does not depend on the cereal library.
   manual: True
@@ -77,7 +82,11 @@ library
     cpp-options: -DFLAG_AESON
     build-depends:
         aeson >=2.0.0 && <2.3
-  if flag(cereal)
+  if flag(binary)
+    cpp-options: -DFLAG_BINARY
+    build-depends:
+        binary
+  if flag(binary)
     cpp-options: -DFLAG_CEREAL
     build-depends:
         cereal
@@ -108,7 +117,11 @@ test-suite doctests
     cpp-options: -DFLAG_AESON
     build-depends:
         aeson >=2.0.0 && <2.3
-  if flag(cereal)
+  if flag(binary)
+    cpp-options: -DFLAG_BINARY
+    build-depends:
+        binary
+  if flag(binary)
     cpp-options: -DFLAG_CEREAL
     build-depends:
         cereal
@@ -141,7 +154,11 @@ test-suite readme
     cpp-options: -DFLAG_AESON
     build-depends:
         aeson >=2.0.0 && <2.3
-  if flag(cereal)
+  if flag(binary)
+    cpp-options: -DFLAG_BINARY
+    build-depends:
+        binary
+  if flag(binary)
     cpp-options: -DFLAG_CEREAL
     build-depends:
         cereal
@@ -171,7 +188,11 @@ test-suite vary-test
     cpp-options: -DFLAG_AESON
     build-depends:
         aeson >=2.0.0 && <2.3
-  if flag(cereal)
+  if flag(binary)
+    cpp-options: -DFLAG_BINARY
+    build-depends:
+        binary
+  if flag(binary)
     cpp-options: -DFLAG_CEREAL
     build-depends:
         cereal

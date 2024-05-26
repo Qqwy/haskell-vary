@@ -66,6 +66,10 @@ import Test.QuickCheck
 import Data.Serialize qualified as Cereal
 # endif
 
+# ifdef FLAG_BINARY
+import Data.Binary qualified as Binary
+# endif
+
 -- $setup
 --
 -- This module is intended to be used qualified:
@@ -361,4 +365,8 @@ deriving instance (Arbitrary (Vary (a : errs))) => Test.QuickCheck.Arbitrary (VE
 
 #ifdef FLAG_CEREAL
 deriving instance (Cereal.Serialize (Vary (a : errs))) => Cereal.Serialize (VEither errs a)
+#endif
+
+#ifdef FLAG_BINARY
+deriving instance (Binary.Binary (Vary (a : errs))) => Binary.Binary (VEither errs a)
 #endif

@@ -31,6 +31,10 @@ import Test.QuickCheck
 import Test.QuickCheck.Arbitrary (GSubterms, RecursivelyShrink)
 # endif
 
+# ifdef FLAG_BINARY
+import Data.Binary qualified as Binary
+# endif
+
 # ifdef FLAG_CEREAL
 import Data.Serialize qualified as Cereal
 # endif
@@ -296,6 +300,38 @@ instance
   where
   hashWithSalt salt vary@(Vary tag _inner) = fromIntegral tag `hashWithSalt` badHashWithSalt salt vary
   hash vary@(Vary tag _inner) = badHashWithSalt (fromIntegral tag) vary
+#endif
+
+#ifdef FLAG_BINARY
+class BinaryHelper a where
+  binaryPut :: a -> Binary.Put
+  binaryGet :: Word -> Binary.Get a
+
+instance BinaryHelper (Vary '[]) where
+  binaryPut = emptyVaryError "binaryPut"
+  binaryGet = emptyVaryError "binaryGet" undefined
+
+instance
+  ( Binary.Binary a
+  , BinaryHelper (Vary as)
+  ) =>
+  BinaryHelper (Vary (a : as))
+  where
+  binaryPut vary = case pop vary of
+    Right val -> Binary.put val
+    Left val -> binaryPut val
+  binaryGet 0 = Vary 0 . Data.Coerce.unsafeCoerce <$> Binary.get @a
+  binaryGet n = pushTail <$> binaryGet @(Vary as) (n - 1)
+
+instance (BinaryHelper (Vary as)) => Binary.Binary (Vary as) where
+  {-# INLINE put #-}
+  put vary@(Vary n _) = do
+    Binary.put n
+    binaryPut vary
+  {-# INLINE get #-}
+  get = do
+    tag <- Binary.get
+    binaryGet tag
 #endif
 
 #ifdef FLAG_CEREAL

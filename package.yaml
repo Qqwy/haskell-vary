@@ -37,6 +37,10 @@ flags:
     description: "When enabled implements the @FromJSON@/@ToJSON@ typeclasses from the aeson library. When disabled, does not depend on the aeson library."
     default: true
     manual: true
+  binary:
+    description: "When enabled implements the @Binary@ typeclass from the binary library. When disabled, does not depend on the binary library."
+    default: true
+    manual: true
   cereal:
     description: "When enabled implements the @Serialize@ typeclass from the cereal library. When disabled, does not depend on the cereal library."
     default: true
@@ -64,7 +68,11 @@ when:
     dependencies:
     - aeson >= 2.0.0 && < 2.3
     cpp-options: -DFLAG_AESON
-  - condition: flag(cereal)
+  - condition: flag(binary)
+    dependencies:
+    - binary
+    cpp-options: -DFLAG_BINARY
+  - condition: flag(binary)
     dependencies:
     - cereal
     cpp-options: -DFLAG_CEREAL
