@@ -63,7 +63,6 @@ import GHC.TypeLits
 import Unsafe.Coerce (unsafeCoerce)
 import Vary.Core (Vary (..))
 import Vary.Utils
-import qualified Vary as encoding
 
 -- $setup
 --

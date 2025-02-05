@@ -1,5 +1,5 @@
 name:                vary
-version:             0.1.0.4
+version:             0.1.0.5
 github:              "qqwy/haskell-vary"
 license:             MIT
 author:              "Marten Wijnja (Qqwy)"
@@ -57,12 +57,12 @@ flags:
 
 dependencies:
 - base >= 4.7 && < 5
-- deepseq >= 1.4.0  && < 1.5
+- deepseq >= 1.4.0  && < 1.6
 
 when:
   - condition: flag(hashable)
     dependencies:
-    - hashable >= 1.3.0 && < 1.5
+    - hashable >= 1.3.0 && < 1.6
     cpp-options: -DFLAG_HASHABLE
   - condition: flag(aeson)
     dependencies:
@@ -78,7 +78,7 @@ when:
     cpp-options: -DFLAG_CEREAL
   - condition: flag(quickcheck)
     dependencies:
-    - QuickCheck >= 2.12 && < 2.15
+    - QuickCheck >= 2.12 && < 2.16
     cpp-options: -DFLAG_QUICKCHECK
 
 ghc-options:

@@ -23,7 +23,6 @@ import Data.Aeson qualified as Aeson
 
 # ifdef FLAG_HASHABLE
 import Data.Hashable
-import Data.Hashable.Generic (GHashable, Zero)
 # endif
 
 # ifdef FLAG_QUICKCHECK
