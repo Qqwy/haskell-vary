@@ -30,6 +30,14 @@ import Test.QuickCheck
 import Test.QuickCheck.Arbitrary (GSubterms, RecursivelyShrink)
 # endif
 
+# ifdef FLAG_BINARY
+import Data.Binary qualified as Binary
+# endif
+
+# ifdef FLAG_CEREAL
+import Data.Serialize qualified as Cereal
+# endif
+
 -- $setup
 -- >>> :set -XGHC2021
 -- >>> :set -XDataKinds
@@ -231,6 +239,10 @@ deriving instance Aeson.FromJSON (Vary '[])
 
 deriving instance (Aeson.FromJSON a) => Aeson.FromJSON (Vary '[a])
 
+-- | This instance round-trips iff there is no overlap between the encodings of the element types.
+--
+-- For example, a `Vary '[Int, String] is round-trippable
+-- but a `Vary '[String, Char]` is not.
 instance (Aeson.FromJSON a, Aeson.FromJSON (Vary (b : bs))) => Aeson.FromJSON (Vary (a : b : bs)) where
   {-# INLINE parseJSON #-}
   parseJSON val = (pushHead <$> Aeson.parseJSON val) <|> (pushTail <$> Aeson.parseJSON val)
@@ -239,6 +251,10 @@ deriving instance Aeson.ToJSON (Vary '[])
 
 deriving instance (Aeson.ToJSON a) => Aeson.ToJSON (Vary '[a])
 
+-- | This instance round-trips iff there is no overlap between the encodings of the element types.
+--
+-- For example, a `Vary '[Int, String] is round-trippable
+-- but a `Vary '[String, Char]` is not.
 instance (Aeson.ToJSON a, Aeson.ToJSON (Vary (b : bs))) => Aeson.ToJSON (Vary (a : b : bs)) where
   {-# INLINE toJSON #-}
   toJSON vary =
@@ -291,4 +307,79 @@ instance
   where
   hashWithSalt salt vary@(Vary tag _inner) = fromIntegral tag `hashWithSalt` badHashWithSalt salt vary
   hash vary@(Vary tag _inner) = badHashWithSalt (fromIntegral tag) vary
+#endif
+
+#ifdef FLAG_BINARY
+class BinaryHelper a where
+  binaryPutVariant :: a -> Binary.Put
+  binaryGetVariant :: Word -> Binary.Get a
+
+instance BinaryHelper (Vary '[]) where
+  {-# INLINE binaryPutVariant #-}
+  binaryPutVariant emptyVary = case from emptyVary of {}
+
+  {-# INLINE binaryGetVariant #-}
+  binaryGetVariant = emptyVaryError "binaryGetVariant" undefined
+
+instance
+  ( Binary.Binary a
+  , BinaryHelper (Vary as)
+  ) =>
+  BinaryHelper (Vary (a : as))
+  where
+  {-# INLINE binaryPutVariant #-}
+  binaryPutVariant vary = case pop vary of
+    Right val -> Binary.put val
+    Left val -> binaryPutVariant val
+
+  {-# INLINE binaryGetVariant #-}
+  binaryGetVariant 0 = pushHead <$> Binary.get @a
+  binaryGetVariant n = pushTail <$> binaryGetVariant @(Vary as) (n - 1)
+
+instance (BinaryHelper (Vary as)) => Binary.Binary (Vary as) where
+  {-# INLINE put #-}
+  put vary@(Vary n _) = do
+    Binary.put n
+    binaryPutVariant vary
+  {-# INLINE get #-}
+  get = do
+    tag <- Binary.get
+    binaryGetVariant tag
+#endif
+
+#ifdef FLAG_CEREAL
+class SerializeHelper a where
+  cerealPutVariant :: a -> Cereal.Put
+  cerealGetVariant :: Word -> Cereal.Get a
+
+instance SerializeHelper (Vary '[]) where
+  {-# INLINE cerealPutVariant #-}
+  cerealPutVariant emptyVary = case from emptyVary of {} 
+  {-# INLINE cerealGetVariant #-}
+  cerealGetVariant = emptyVaryError "cerealGetVariant" undefined
+
+instance
+  ( Cereal.Serialize a
+  , SerializeHelper (Vary as)
+  ) =>
+  SerializeHelper (Vary (a : as))
+  where
+  {-# INLINE cerealPutVariant #-}
+  cerealPutVariant vary = case pop vary of
+    Right val -> Cereal.put val
+    Left val -> cerealPutVariant val
+
+  {-# INLINE cerealGetVariant #-}
+  cerealGetVariant 0 = pushHead <$> Cereal.get @a
+  cerealGetVariant n = pushTail <$> cerealGetVariant @(Vary as) (n - 1)
+
+instance (SerializeHelper (Vary as)) => Cereal.Serialize (Vary as) where
+  {-# INLINE put #-}
+  put vary@(Vary n _) = do
+    Cereal.putWord64le (fromIntegral n)
+    cerealPutVariant vary
+  {-# INLINE get #-}
+  get = do
+    tag <- Cereal.getWord64le
+    cerealGetVariant (fromIntegral tag)
 #endif

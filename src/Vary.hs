@@ -27,6 +27,7 @@ module Vary
     -- $setup
     -- $motivating_example
     -- $vary_and_exceptions
+    -- $vary_and_serialization
 
     -- * Core type definition
     Vary,
@@ -149,6 +150,19 @@ A longer example on why you would want to use Vary [can be found in the package 
 -- >>> catcher (throw AllocationLimitExceeded)
 -- *** Exception: allocation limit exceeded
 
+
+-- $vary_and_serialization
+--
+-- == (De)Serializing Vary values
+--
+-- `Vary` has optional dependencies to enable `aeson`'s `Data.Aeson`, `binary`'s `Data.Binary` and `cereal`'s `Data.Serealize` serialization.
+--
+-- Specifically for Aeson serialization, Vary datatypes are encoded
+-- as their ['UntaggedValue'](https://hackage.haskell.org/package/aeson-2.0.3.0/docs/Data-Aeson-Types.html#t:SumEncoding) encoding.
+-- This means that serialization to JSON only round-trips when the encodings are disjoint;
+-- on decoding, the first variant to succeed is used.
+--
+-- The Binary and Serialize instances always round-trip, as their encoding contains the variant's tag index.
 
 -- | Builds a Vary from the given value.
 --

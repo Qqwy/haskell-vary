@@ -1,5 +1,5 @@
 name:                vary
-version:             0.1.0.5
+version:             0.1.1.0
 github:              "qqwy/haskell-vary"
 license:             MIT
 author:              "Marten Wijnja (Qqwy)"
@@ -37,6 +37,14 @@ flags:
     description: "When enabled implements the @FromJSON@/@ToJSON@ typeclasses from the aeson library. When disabled, does not depend on the aeson library."
     default: true
     manual: true
+  binary:
+    description: "When enabled implements the @Binary@ typeclass from the binary library. When disabled, does not depend on the binary library."
+    default: true
+    manual: true
+  cereal:
+    description: "When enabled implements the @Serialize@ typeclass from the cereal library. When disabled, does not depend on the cereal library."
+    default: true
+    manual: true
   hashable:
     description: "When enabled implements the @Hashable@ typeclass from the hashable library. When disabled, does not depend on the @hashable@ library."
     default: true
@@ -60,6 +68,14 @@ when:
     dependencies:
     - aeson >= 2.0.0 && < 2.3
     cpp-options: -DFLAG_AESON
+  - condition: flag(binary)
+    dependencies:
+    - binary >= 0.8.0.0 && < 0.9.0.0
+    cpp-options: -DFLAG_BINARY
+  - condition: flag(binary)
+    dependencies:
+    - cereal >= 0.5.0.0 && < 0.6.0.0
+    cpp-options: -DFLAG_CEREAL
   - condition: flag(quickcheck)
     dependencies:
     - QuickCheck >= 2.12 && < 2.16
@@ -102,6 +118,12 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - vary
+    - hspec
+    - QuickCheck >= 2.12 && < 2.15
+    - aeson >= 2.0.0 && < 2.3
+    - binary
+    - bytestring
+    - cereal
   doctests:
     main: doctests.hs
     source-dirs: test/doctest

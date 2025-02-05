@@ -1,3 +1,40 @@
-module Main where
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
+module Main (main) where
+
+import Test.Hspec
+import Test.Hspec.QuickCheck
+
+import Data.Aeson qualified as Aeson
+import Data.Binary qualified as Binary
+import Data.ByteString qualified as BS
+import Data.ByteString.Lazy qualified as LBS
+import Data.Serialize qualified as Cereal
+
+import Vary (Vary)
+
+type TestVariant = Vary '[Int, String, Maybe [Bool]]
+
 main :: IO ()
-main = putStrLn "(No separate unit tests yet)"
+main = hspec $ do
+  describe "Serialization with aeson" $ do
+    prop "encodes properly" $ \(v :: TestVariant) -> do
+      Aeson.encode v `shouldSatisfy` (not . LBS.null)
+    prop "encode - decode roundtrips" $ \(v :: TestVariant) -> do
+      -- NOTE: `TestVariant` is chosen so the JSON encodings do not overlap.
+      -- Without that, this property would not hold
+      Aeson.eitherDecode (Aeson.encode v) `shouldBe` Right v
+
+  describe "Serialization with binary" $ do
+    prop "encodes properly" $ \(v :: TestVariant) -> do
+      Binary.encode v `shouldSatisfy` (not . LBS.null)
+    prop "encode - decode roundtrips" $ \(v :: TestVariant) -> do
+      Binary.decode (Binary.encode v) `shouldBe` v
+
+  describe "Serialization with cereal" $ do
+    prop "encodes properly" $ \(v :: TestVariant) -> do
+      Cereal.encode v `shouldSatisfy` (not . BS.null)
+    prop "encode - decode roundtrips" $ \(v :: TestVariant) -> do
+      Cereal.decode (Cereal.encode v) `shouldBe` Right v
