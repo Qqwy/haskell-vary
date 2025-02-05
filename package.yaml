@@ -72,7 +72,7 @@ when:
     dependencies:
     - binary >= 0.8.0.0 && < 0.9.0.0
     cpp-options: -DFLAG_BINARY
-  - condition: flag(binary)
+  - condition: flag(cereal)
     dependencies:
     - cereal >= 0.5.0.0 && < 0.6.0.0
     cpp-options: -DFLAG_CEREAL

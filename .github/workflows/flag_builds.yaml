@@ -5,7 +5,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        flags: ["--flag=vary:-aeson", "--flag=vary:-hashable", "--flag=vary:-quickcheck", "--flag=vary:-aeson --flag=vary:-hashable --flag=vary:-quickcheck"]
+        flags: [
+          "",
+          "--flag=vary:-aeson",
+          "--flag=vary:-binary",
+          "--flag=vary:-cereal",
+          "--flag=vary:-hashable",
+          "--flag=vary:-quickcheck",
+          "--flag=vary:-aeson --flag=vary:-binary --flag=vary:-cereal --flag=vary:-hashable --flag=vary:-quickcheck"
+          ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v3
