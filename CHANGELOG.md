@@ -10,7 +10,7 @@ and this project adheres to the
 
 ## 0.1.1.0 - 2025-02-05
 
-- Add serialization support of `Vary` for `binary`'s `Data.Binary` and `cereal`'s `Data.Serialize`.
+- Add serialization support of `Vary` for `binary`'s `Data.Binary` and `cereal`'s `Data.Serialize`. (c.f. [#6](https://github.com/Qqwy/haskell-vary/pull/6)) Thank you very much, @jmorag!
 - Document `Data.Aeson` round-tripping behaviour (namely: only round-trippable if encodings do not overlap, the `UntaggedValue` sum encoding).
 
 ## 0.1.0.5 - 2025-02-05
