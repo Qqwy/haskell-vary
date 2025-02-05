@@ -1,11 +1,11 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
 name:           vary
-version:        0.1.0.5
+version:        0.1.1.0
 synopsis:       Vary: Friendly and fast polymorphic variants (open unions/coproducts/extensible sums)
 description:    Vary: Friendly and fast Variant types for Haskell
                 .
@@ -86,7 +86,7 @@ library
     cpp-options: -DFLAG_BINARY
     build-depends:
         binary >=0.8.0.0 && <0.9.0.0
-  if flag(binary)
+  if flag(cereal)
     cpp-options: -DFLAG_CEREAL
     build-depends:
         cereal >=0.5.0.0 && <0.6.0.0
@@ -121,7 +121,7 @@ test-suite doctests
     cpp-options: -DFLAG_BINARY
     build-depends:
         binary >=0.8.0.0 && <0.9.0.0
-  if flag(binary)
+  if flag(cereal)
     cpp-options: -DFLAG_CEREAL
     build-depends:
         cereal >=0.5.0.0 && <0.6.0.0
@@ -158,7 +158,7 @@ test-suite readme
     cpp-options: -DFLAG_BINARY
     build-depends:
         binary >=0.8.0.0 && <0.9.0.0
-  if flag(binary)
+  if flag(cereal)
     cpp-options: -DFLAG_CEREAL
     build-depends:
         cereal >=0.5.0.0 && <0.6.0.0
@@ -198,7 +198,7 @@ test-suite vary-test
     cpp-options: -DFLAG_BINARY
     build-depends:
         binary >=0.8.0.0 && <0.9.0.0
-  if flag(binary)
+  if flag(cereal)
     cpp-options: -DFLAG_CEREAL
     build-depends:
         cereal >=0.5.0.0 && <0.6.0.0
