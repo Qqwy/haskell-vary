@@ -15,7 +15,7 @@ import Data.Serialize qualified as Cereal
 
 import Vary (Vary)
 
-type TestVariant = Vary '[Int, Double, Char, String]
+type TestVariant = Vary '[Int, String, Maybe [Bool]]
 
 main :: IO ()
 main = hspec $ do
@@ -23,6 +23,8 @@ main = hspec $ do
     prop "encodes properly" $ \(v :: TestVariant) -> do
       Aeson.encode v `shouldSatisfy` (not . LBS.null)
     prop "encode - decode roundtrips" $ \(v :: TestVariant) -> do
+      -- NOTE: `TestVariant` is chosen so the JSON encodings do not overlap.
+      -- Without that, this property would not hold
       Aeson.eitherDecode (Aeson.encode v) `shouldBe` Right v
 
   describe "Serialization with binary" $ do
