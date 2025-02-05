@@ -8,4 +8,22 @@ and this project adheres to the
 
 ## Unreleased
 
-## 0.1.0.0 - YYYY-MM-DD
+## 0.1.0.5 - 2025-02-05
+
+- Relax max allowed versions of DeepSeq (<1.6), Hashable (<1.6), QuickCheck (<2.16)
+
+## 0.1.0.4 - 2024-01-15
+
+- Improved test coverage for exception cases; README is now fully tested using Literate Haskell.
+
+## 0.1.0.3 - 2024-01-14
+
+- Fix a typographic error in the documentation
+
+## 0.1.0.2 - 2024-01-14
+
+- Improve documentation
+
+## 0.1.0.0 - 2024-01-13
+
+- Initial version
