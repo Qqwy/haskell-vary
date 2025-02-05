@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           vary
-version:        0.1.0.4
+version:        0.1.0.5
 synopsis:       Vary: Friendly and fast polymorphic variants (open unions/coproducts/extensible sums)
 description:    Vary: Friendly and fast Variant types for Haskell
                 .
@@ -62,12 +62,12 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
-    , deepseq >=1.4.0 && <1.5
+    , deepseq >=1.4.0 && <1.6
   default-language: Haskell2010
   if flag(hashable)
     cpp-options: -DFLAG_HASHABLE
     build-depends:
-        hashable >=1.3.0 && <1.5
+        hashable >=1.3.0 && <1.6
   if flag(aeson)
     cpp-options: -DFLAG_AESON
     build-depends:
@@ -75,7 +75,7 @@ library
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck >=2.12 && <2.15
+        QuickCheck >=2.12 && <2.16
 
 test-suite doctests
   type: exitcode-stdio-1.0
@@ -87,14 +87,14 @@ test-suite doctests
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
-    , deepseq >=1.4.0 && <1.5
+    , deepseq >=1.4.0 && <1.6
     , doctest-parallel
     , vary
   default-language: Haskell2010
   if flag(hashable)
     cpp-options: -DFLAG_HASHABLE
     build-depends:
-        hashable >=1.3.0 && <1.5
+        hashable >=1.3.0 && <1.6
   if flag(aeson)
     cpp-options: -DFLAG_AESON
     build-depends:
@@ -102,7 +102,7 @@ test-suite doctests
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck >=2.12 && <2.15
+        QuickCheck >=2.12 && <2.16
 
 test-suite readme
   type: exitcode-stdio-1.0
@@ -114,7 +114,7 @@ test-suite readme
       markdown-unlit:markdown-unlit
   build-depends:
       base >=4.7 && <5
-    , deepseq >=1.4.0 && <1.5
+    , deepseq >=1.4.0 && <1.6
     , hspec
     , markdown-unlit
     , should-not-typecheck
@@ -123,7 +123,7 @@ test-suite readme
   if flag(hashable)
     cpp-options: -DFLAG_HASHABLE
     build-depends:
-        hashable >=1.3.0 && <1.5
+        hashable >=1.3.0 && <1.6
   if flag(aeson)
     cpp-options: -DFLAG_AESON
     build-depends:
@@ -131,7 +131,7 @@ test-suite readme
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck >=2.12 && <2.15
+        QuickCheck >=2.12 && <2.16
 
 test-suite vary-test
   type: exitcode-stdio-1.0
@@ -143,13 +143,13 @@ test-suite vary-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
-    , deepseq >=1.4.0 && <1.5
+    , deepseq >=1.4.0 && <1.6
     , vary
   default-language: Haskell2010
   if flag(hashable)
     cpp-options: -DFLAG_HASHABLE
     build-depends:
-        hashable >=1.3.0 && <1.5
+        hashable >=1.3.0 && <1.6
   if flag(aeson)
     cpp-options: -DFLAG_AESON
     build-depends:
@@ -157,4 +157,4 @@ test-suite vary-test
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck >=2.12 && <2.15
+        QuickCheck >=2.12 && <2.16
