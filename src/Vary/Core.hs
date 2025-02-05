@@ -240,6 +240,10 @@ deriving instance Aeson.FromJSON (Vary '[])
 
 deriving instance (Aeson.FromJSON a) => Aeson.FromJSON (Vary '[a])
 
+-- | This instance round-trips iff there is no overlap between the encodings of the element types.
+--
+-- For example, a `Vary '[Int, String] is round-trippable
+-- but a `Vary '[String, Char]` is not.
 instance (Aeson.FromJSON a, Aeson.FromJSON (Vary (b : bs))) => Aeson.FromJSON (Vary (a : b : bs)) where
   {-# INLINE parseJSON #-}
   parseJSON val = (pushHead <$> Aeson.parseJSON val) <|> (pushTail <$> Aeson.parseJSON val)
@@ -248,6 +252,10 @@ deriving instance Aeson.ToJSON (Vary '[])
 
 deriving instance (Aeson.ToJSON a) => Aeson.ToJSON (Vary '[a])
 
+-- | This instance round-trips iff there is no overlap between the encodings of the element types.
+--
+-- For example, a `Vary '[Int, String] is round-trippable
+-- but a `Vary '[String, Char]` is not.
 instance (Aeson.ToJSON a, Aeson.ToJSON (Vary (b : bs))) => Aeson.ToJSON (Vary (a : b : bs)) where
   {-# INLINE toJSON #-}
   toJSON vary =
