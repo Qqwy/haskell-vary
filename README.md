@@ -313,6 +313,7 @@ The following is executed by the README test runner,
 but we don't want it to be visible to human readers:
 
 ```haskell top:1
+{-# OPTIONS_GHC -Wno-missing-export-lists #-}
 {-# OPTIONS_GHC -fdefer-type-errors #-} -- We want to show some incorrect examples!
 module Main where
 
