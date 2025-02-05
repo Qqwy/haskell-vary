@@ -304,12 +304,15 @@ instance
 
 #ifdef FLAG_BINARY
 class BinaryHelper a where
-  binaryPut :: a -> Binary.Put
-  binaryGet :: Word -> Binary.Get a
+  binaryPutVariant :: a -> Binary.Put
+  binaryGetVariant :: Word -> Binary.Get a
 
 instance BinaryHelper (Vary '[]) where
-  binaryPut = emptyVaryError "binaryPut"
-  binaryGet = emptyVaryError "binaryGet" undefined
+  {-# INLINE binaryPutVariant #-}
+  binaryPutVariant emptyVary = case from emptyVary of {}
+
+  {-# INLINE binaryGetVariant #-}
+  binaryGetVariant = emptyVaryError "binaryGetVariant" undefined
 
 instance
   ( Binary.Binary a
@@ -317,31 +320,36 @@ instance
   ) =>
   BinaryHelper (Vary (a : as))
   where
-  binaryPut vary = case pop vary of
+  {-# INLINE binaryPutVariant #-}
+  binaryPutVariant vary = case pop vary of
     Right val -> Binary.put val
-    Left val -> binaryPut val
-  binaryGet 0 = Vary 0 . Data.Coerce.unsafeCoerce <$> Binary.get @a
-  binaryGet n = pushTail <$> binaryGet @(Vary as) (n - 1)
+    Left val -> binaryPutVariant val
+
+  {-# INLINE binaryGetVariant #-}
+  binaryGetVariant 0 = pushHead <$> Binary.get @a
+  binaryGetVariant n = pushTail <$> binaryGetVariant @(Vary as) (n - 1)
 
 instance (BinaryHelper (Vary as)) => Binary.Binary (Vary as) where
   {-# INLINE put #-}
   put vary@(Vary n _) = do
     Binary.put n
-    binaryPut vary
+    binaryPutVariant vary
   {-# INLINE get #-}
   get = do
     tag <- Binary.get
-    binaryGet tag
+    binaryGetVariant tag
 #endif
 
 #ifdef FLAG_CEREAL
 class SerializeHelper a where
-  cerealPut :: a -> Cereal.Put
-  cerealGet :: Word -> Cereal.Get a
+  cerealPutVariant :: a -> Cereal.Put
+  cerealGetVariant :: Word -> Cereal.Get a
 
 instance SerializeHelper (Vary '[]) where
-  cerealPut = emptyVaryError "cerealPut"
-  cerealGet = emptyVaryError "cerealGet" undefined
+  {-# INLINE cerealPutVariant #-}
+  cerealPutVariant emptyVary = case from emptyVary of {} 
+  {-# INLINE cerealGetVariant #-}
+  cerealGetVariant = emptyVaryError "cerealGetVariant" undefined
 
 instance
   ( Cereal.Serialize a
@@ -349,19 +357,22 @@ instance
   ) =>
   SerializeHelper (Vary (a : as))
   where
-  cerealPut vary = case pop vary of
+  {-# INLINE cerealPutVariant #-}
+  cerealPutVariant vary = case pop vary of
     Right val -> Cereal.put val
-    Left val -> cerealPut val
-  cerealGet 0 = Vary 0 . Data.Coerce.unsafeCoerce <$> Cereal.get @a
-  cerealGet n = pushTail <$> cerealGet @(Vary as) (n - 1)
+    Left val -> cerealPutVariant val
+
+  {-# INLINE cerealGetVariant #-}
+  cerealGetVariant 0 = pushHead <$> Cereal.get @a
+  cerealGetVariant n = pushTail <$> cerealGetVariant @(Vary as) (n - 1)
 
 instance (SerializeHelper (Vary as)) => Cereal.Serialize (Vary as) where
   {-# INLINE put #-}
   put vary@(Vary n _) = do
     Cereal.putWord64le (fromIntegral n)
-    cerealPut vary
+    cerealPutVariant vary
   {-# INLINE get #-}
   get = do
     tag <- Cereal.getWord64le
-    cerealGet (fromIntegral tag)
+    cerealGetVariant (fromIntegral tag)
 #endif
