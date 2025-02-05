@@ -36,5 +36,5 @@ jobs:
           # cabal-version: 'latest'. Omitted, but defaults to 'latest'
           enable-stack: true
           stack-version: 'latest'
-      - run: stack build ${{ matrix.flags }}
+      - run: stack build --ghc-options=-Wall ${{ matrix.flags }}
 
