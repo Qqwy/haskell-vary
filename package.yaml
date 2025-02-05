@@ -1,5 +1,5 @@
 name:                vary
-version:             0.1.0.5
+version:             0.1.1.0
 github:              "qqwy/haskell-vary"
 license:             MIT
 author:              "Marten Wijnja (Qqwy)"

@@ -8,6 +8,11 @@ and this project adheres to the
 
 ## Unreleased
 
+## 0.1.1.0 - 2025-02-05
+
+- Add serialization support of `Vary` for `binary`'s `Data.Binary` and `cereal`'s `Data.Serialize`.
+- Document `Data.Aeson` round-tripping behaviour (namely: only round-trippable if encodings do not overlap, the `UntaggedValue` sum encoding).
+
 ## 0.1.0.5 - 2025-02-05
 
 - Relax max allowed versions of DeepSeq (<1.6), Hashable (<1.6), QuickCheck (<2.16)
