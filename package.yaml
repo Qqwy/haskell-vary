@@ -1,5 +1,5 @@
 name:                vary
-version:             0.1.1.0
+version:             0.1.1.1
 github:              "qqwy/haskell-vary"
 license:             MIT
 author:              "Marten Wijnja (Qqwy)"
@@ -119,7 +119,7 @@ tests:
     dependencies:
     - vary
     - hspec
-    - QuickCheck >= 2.12 && < 2.15
+    - QuickCheck >= 2.12 && < 2.16
     - aeson >= 2.0.0 && < 2.3
     - binary
     - bytestring

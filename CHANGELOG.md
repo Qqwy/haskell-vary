@@ -8,6 +8,10 @@ and this project adheres to the
 
 ## Unreleased
 
+## 0.1.1.1 - 2025-02-06
+
+- Loosen test dependency bound on QuickCheck.
+
 ## 0.1.1.0 - 2025-02-05
 
 - Add serialization support of `Vary` for `binary`'s `Data.Binary` and `cereal`'s `Data.Serialize`. (c.f. [#6](https://github.com/Qqwy/haskell-vary/pull/6)) Thank you very much, @jmorag!
