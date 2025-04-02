@@ -1,10 +1,18 @@
-{-# LANGUAGE GHC2021 #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Vary.VEither (
   -- * General Usage
   -- $setup
@@ -51,7 +59,7 @@ import qualified Vary
 import GHC.Generics
 
 # ifdef FLAG_AESON
-import Data.Aeson qualified as Aeson
+import qualified Data.Aeson as Aeson
 # endif
 
 # ifdef FLAG_HASHABLE
@@ -63,11 +71,11 @@ import Test.QuickCheck
 # endif
 
 # ifdef FLAG_CEREAL
-import Data.Serialize qualified as Cereal
+import qualified Data.Serialize as Cereal
 # endif
 
 # ifdef FLAG_BINARY
-import Data.Binary qualified as Binary
+import qualified Data.Binary as Binary
 # endif
 
 -- $setup
@@ -79,7 +87,6 @@ import Data.Binary qualified as Binary
 -- 
 -- And for many functions, it is useful or outright necessary to enable the following extensions:
 --
--- >>> :set -XGHC2021
 -- >>> :set -XDataKinds
 --
 -- Finally, some example snippets in this module make use of 'Data.Function.&', the left-to-right function application operator.
@@ -148,14 +155,18 @@ veither _ g (VRight y)    =  g y
 
 -- Matches when the VEither contains one of the errors, returning @Vary errs@
 pattern VLeft :: forall a errs. Vary errs -> VEither errs a
+#if __GLASGOW_HASKELL__ >= 902
 {-# INLINE VLeft #-}
+#endif
 pattern VLeft errs <- (toEither -> Left errs)
    where
       VLeft (Vary tag err) = VEither ((Vary (tag+1) err))
 
 -- | Matches when the VEither contains the preferred value of type @a@.
 pattern VRight :: forall a errs. a -> VEither errs a
+#if __GLASGOW_HASKELL__ >= 902
 {-# INLINE VRight #-}
+#endif
 pattern VRight a <- (toEither -> Right a)
   where
     VRight a = VEither (Vary.from @a a)

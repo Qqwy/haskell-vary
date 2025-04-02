@@ -1,9 +1,16 @@
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 module Vary.Core (Vary (..), pop) where
@@ -15,10 +22,10 @@ import Data.Kind (Type)
 import Data.Typeable (Typeable, typeOf)
 import GHC.Exts (Any)
 import GHC.Generics
-import Unsafe.Coerce qualified as Data.Coerce
+import qualified Unsafe.Coerce as Data.Coerce
 
 # ifdef FLAG_AESON
-import Data.Aeson qualified as Aeson
+import qualified Data.Aeson as Aeson
 # endif
 
 # ifdef FLAG_HASHABLE
@@ -31,15 +38,14 @@ import Test.QuickCheck.Arbitrary (GSubterms, RecursivelyShrink)
 # endif
 
 # ifdef FLAG_BINARY
-import Data.Binary qualified as Binary
+import qualified Data.Binary as Binary
 # endif
 
 # ifdef FLAG_CEREAL
-import Data.Serialize qualified as Cereal
+import qualified Data.Serialize as Cereal
 # endif
 
 -- $setup
--- >>> :set -XGHC2021
 -- >>> :set -XDataKinds
 -- >>> import Vary (Vary, (:|))
 -- >>> import qualified Vary

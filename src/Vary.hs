@@ -80,8 +80,6 @@ import Vary.Utils
 -- 
 -- And for many functions, it is useful (and sometimes outright necessary) to enable the following extensions:
 --
--- >>> -- Of the GHC2021 set, Vary uses: TypeApplications, TypeOperators, FlexibleContexts:
--- >>> :set -XGHC2021 
 -- >>> :set -XDataKinds
 --
 -- Finally, some example snippets in this module make use of 'Data.Function.&', the left-to-right function application operator.
