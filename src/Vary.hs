@@ -21,6 +21,8 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Vary
   ( -- * General Usage
@@ -30,7 +32,7 @@ module Vary
     -- $vary_and_serialization
 
     -- * Core type definition
-    Vary,
+    Vary (VS, VZ, VEmpty),
     (:|),
 
     -- * Construction and Destruction:
@@ -63,6 +65,7 @@ import GHC.TypeLits
 import Unsafe.Coerce (unsafeCoerce)
 import Vary.Core (Vary (..))
 import Vary.Utils
+import Data.Void (Void)
 
 -- $setup
 --
@@ -339,13 +342,30 @@ on thisFun restFun vary =
   case Vary.into @a vary of
     Just val -> thisFun val
     Nothing ->
-      restFun (coerceHigher vary)
-  where
-    -- Invariant: does not contain @a
-    {-# INLINE coerceHigher #-}
-    coerceHigher :: Vary (a : l) -> Vary l
-    coerceHigher (Vary idx val) =
-      unsafeCoerce (Vary (idx - 1) val)
+      restFun (_coerceHigher vary)
+
+-- Invariant: does not contain @a
+{-# INLINE _coerceHigher #-}
+_coerceHigher :: Vary (a : l) -> Vary l
+_coerceHigher (Vary idx val) =
+  unsafeCoerce (Vary (idx - 1) val)
+
+pattern VZ :: x -> Vary (x : xs)
+pattern VZ x <- (Vary.into -> Just !x)
+
+pattern VS :: forall x xs. Vary xs -> Vary (x : xs)
+pattern VS v <- ((\v -> (Vary.into @x @(x : xs) v, _coerceHigher v)) -> (Nothing, !v))
+  where 
+    VS a = Vary.morph a
+
+pattern VEmpty :: Void -> Vary '[]
+pattern VEmpty a <- (exhaustiveCase -> a)
+  where 
+    VEmpty _v = case _v of {}
+
+{-# COMPLETE VZ, VS #-}
+
+{-# COMPLETE VEmpty #-}
 
 -- | Execute a function expecting a larger (or differently-ordered) variant
 -- with a smaller (or differently-ordered) variant,
