@@ -88,6 +88,10 @@ import qualified Data.Binary as Binary
 -- And for many functions, it is useful or outright necessary to enable the following extensions:
 --
 -- >>> :set -XDataKinds
+-- >>> -- As of GHC >= 9.2, you can replace the following three extensions by GHC2021 instead:
+-- >>> {-# LANGUAGE FlexibleContexts #-}
+-- >>> {-# LANGUAGE TypeApplications #-}
+-- >>> {-# LANGUAGE TypeOperators #-}
 --
 -- Finally, some example snippets in this module make use of 'Data.Function.&', the left-to-right function application operator.
 --

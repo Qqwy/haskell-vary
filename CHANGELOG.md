@@ -8,6 +8,10 @@ and this project adheres to the
 
 ## Unreleased
 
+## 0.1.1.2 - 2025-04-16
+
+- Lower the minimum supported GHC version to v8.10.x by removing internal usage of `GHC2021`. ([PR #9](https://github.com/Qqwy/haskell-vary/pull/9)) Thank you, @newhoggy and @carbolymer!
+
 ## 0.1.1.1 - 2025-02-06
 
 - Loosen test dependency bound on QuickCheck.

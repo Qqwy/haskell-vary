@@ -5,6 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        ghc-version: ['9.6.3', '8.10.7']
         flags: [
           "",
           "--flag=vary:-aeson",
@@ -21,7 +22,7 @@ jobs:
           path: |
             ~/.stack
             .stack-work
-          key: ${{ runner.os }}-stack-withflags-${{ matrix.flags }}-${{ hashFiles('stack.yaml.lock', 'package.yaml') }}
+          key: ${{ runner.os }}-stack-${{ matrix.ghc-version }}-withflags-${{ matrix.flags }}-${{ hashFiles('stack.yaml.lock', 'package.yaml') }}
           restore-keys: |
             ${{ runner.os }}-stack-
       - name: Restore cached dependencies
@@ -29,12 +30,11 @@ jobs:
         id: cache
         with:
             path: ~/.stack
-            key: ${{ runner.os }}-stack-withflags-${{ matrix.flags }}-${{ hashFiles('**/*.cabal') }}
+            key: ${{ runner.os }}-stack-${{ matrix.ghc-version }}-withflags-${{ matrix.flags }}-${{ hashFiles('**/*.cabal') }}
       - uses: haskell-actions/setup@v2
         with:
-          ghc-version: '9.6.3' # Exact version of ghc to use
+          ghc-version: ${{ matrix.ghc-version }} # Exact version of ghc to use
           # cabal-version: 'latest'. Omitted, but defaults to 'latest'
           enable-stack: true
           stack-version: 'latest'
       - run: stack build --ghc-options=-Wall ${{ matrix.flags }}
-
