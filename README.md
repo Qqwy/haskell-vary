@@ -43,7 +43,9 @@ import qualified Vary.VEither as VEither
 The library is intended to be used with the following extensions active:
 
 ```haskell top:0
-{-# LANGUAGE GHC2021 #-} -- Of these, Vary uses: TypeApplications, TypeOperators, FlexibleContexts
+{-# LANGUAGE FlexibleContexts #-}  -- As of ghc-9.2 can use GHC2021 instead
+{-# LANGUAGE TypeApplications #-}  -- As of ghc-9.2 can use GHC2021 instead
+{-# LANGUAGE TypeOperators #-}  -- As of ghc-9.2 can use GHC2021 instead
 {-# LANGUAGE DataKinds #-}
 ```
 
