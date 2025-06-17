@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           vary
-version:        0.1.1.1
+version:        0.1.1.2
 synopsis:       Vary: Friendly and fast polymorphic variants (open unions/coproducts/extensible sums)
 description:    Vary: Friendly and fast Variant types for Haskell
                 .
@@ -93,7 +93,7 @@ library
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck >=2.12 && <2.16
+        QuickCheck >=2.12 && <3
 
 test-suite doctests
   type: exitcode-stdio-1.0
@@ -128,7 +128,7 @@ test-suite doctests
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck >=2.12 && <2.16
+        QuickCheck >=2.12 && <3
 
 test-suite readme
   type: exitcode-stdio-1.0
@@ -165,7 +165,7 @@ test-suite readme
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck >=2.12 && <2.16
+        QuickCheck >=2.12 && <3
 
 test-suite vary-test
   type: exitcode-stdio-1.0
@@ -205,4 +205,4 @@ test-suite vary-test
   if flag(quickcheck)
     cpp-options: -DFLAG_QUICKCHECK
     build-depends:
-        QuickCheck >=2.12 && <2.16
+        QuickCheck >=2.12 && <3

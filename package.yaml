@@ -78,7 +78,7 @@ when:
     cpp-options: -DFLAG_CEREAL
   - condition: flag(quickcheck)
     dependencies:
-    - QuickCheck >= 2.12 && < 2.16
+    - QuickCheck >= 2.12 && < 3
     cpp-options: -DFLAG_QUICKCHECK
 
 ghc-options:
